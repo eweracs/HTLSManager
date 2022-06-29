@@ -63,7 +63,7 @@ class HTLSManager(GeneralPlugin):
 				self.font_settings[category] = {}
 
 		# make a vanilla window with two tabs: font settings and master settings
-		self.w = Window((1, 1), "HT LetterSpacer Manager")
+		self.w = FloatingWindow((1, 1), "HT LetterSpacer Manager")
 
 		self.metrics = {
 			"margin": 10
@@ -191,6 +191,9 @@ class HTLSManager(GeneralPlugin):
 		#########################
 
 		self.visualiserTab.title = TextBox("auto", "Visualiser")
+		self.visualiserTab.masterName = TextBox("auto",
+		                                            "Master: %s" % self.font.selectedFontMaster.name,
+		                                            alignment="right")
 
 		self.master_parameters_sliders = {}
 		self.master_parameters_fields = {}
@@ -207,9 +210,11 @@ class HTLSManager(GeneralPlugin):
 
 		visualiser_tab_rules = [
 			"H:|-margin-[title]",
+			"H:[masterName]-margin-|",
 			"H:|-margin-[areaSettings]-margin-|",
 			"H:|-margin-[depthSettings]-margin-|",
 			"H:|-margin-[leftGlyphView(200)]-margin-[rightGlyphView(200)]-margin-|",
+			"V:|-margin-[masterName]",
 			"V:|-margin-[title]-margin-[areaSettings]-margin-[depthSettings]-margin-[leftGlyphView(200)]-margin-|",
 			"V:|-margin-[title]-margin-[areaSettings]-margin-[depthSettings]-margin-[rightGlyphView(200)]-margin-|"
 		]
@@ -226,6 +231,7 @@ class HTLSManager(GeneralPlugin):
 		self.w.addAutoPosSizeRules(rules, self.metrics)
 		self.w.open()
 		self.w.makeKey()
+		self.w.bind("close", self.close)
 
 		Glyphs.addCallback(self.ui_update, UPDATEINTERFACE)
 
@@ -377,8 +383,9 @@ class HTLSManager(GeneralPlugin):
 		# check if the master was switched
 		if self.currentMasterID != self.font.selectedFontMaster.id:
 			self.currentMasterID = self.font.selectedFontMaster.id
-			# update the master name in the master settings tab title
+			# update the master name in the master settings and visualiser tab title
 			self.masterSettingsTab.masterName.set("Master: %s" % self.font.selectedFontMaster.name)
+			self.visualiserTab.masterName.set("Master: %s" % self.font.selectedFontMaster.name)
 			# read the current master's user data and update all fields in the master settings tab accordingly
 			if self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
 				for category in self.categories:
@@ -398,6 +405,10 @@ class HTLSManager(GeneralPlugin):
 							getattr(self.master_settings_groups[setting], "value").set("")
 							# disable the reset button
 							self.master_settings_groups[setting].resetButton.enable(False)
+
+	@objc.python_method
+	def close(self, sender):
+		Glyphs.removeCallback(self.ui_update)
 
 	@objc.python_method
 	def __file__(self):
