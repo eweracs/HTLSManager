@@ -38,13 +38,16 @@ def HTLSGlyphView(parent, glyph_name, glyphs, current_master_id):
 def HTLSParameterSlider(parent, parameter, master_id, current_value, min_value, max_value):
 
 	def set_master_parameters(sender):
-		parent.set_master_parameter(master_id, parameter, int(sender.get()))
 		# if the sender is the slider, update the value text field
 		if sender == parent.master_parameters_sliders[parameter]:
 			parent.master_parameters_fields[parameter].set(int(sender.get()))
 		# if the sender is the value text field, update the slider
 		elif sender == parent.master_parameters_fields[parameter]:
+			if not sender.get().isnumeric():
+				Message(title="Value must be a number", message="Please only enter whole number values.",)
+				return
 			parent.master_parameters_sliders[parameter].set(int(sender.get()))
+		parent.set_master_parameter(master_id, parameter, int(sender.get()))
 
 	# add a group with the following elements: a Slider, a TextBox to show the current value of the parameter
 	# to show the current left side bearing and right side bearing
@@ -57,18 +60,19 @@ def HTLSParameterSlider(parent, parameter, master_id, current_value, min_value, 
 	                             value=current_value,
 	                             callback=set_master_parameters)
 	slider_group.field = EditText("auto",
-	                              current_value,
+	                              text=current_value,
+	                              continuous=False,
 	                              callback=set_master_parameters)
 
 	# add rules to the slider group
 	slider_group_rules = [
-		"H:|-margin-[title]",
-		"H:|-margin-[slider]-margin-[field(50)]-margin-|",
-		"V:|-margin-[title]-margin-[slider]-margin-|",
-		"V:[field]-margin-|",
+		"H:|-margin-[title(50)]-margin-[slider]-margin-[field(50)]-margin-|",
+		"V:|-margin-[slider]-margin-|",
+		"V:|-margin-[title]",
+		"V:|-margin-[field]",
 	]
 
-	slider_group.addAutoPosSizeRules(slider_group_rules, {"margin": 10})
+	slider_group.addAutoPosSizeRules(slider_group_rules, parent.metrics)
 
 	parent.master_parameters_sliders[parameter] = slider_group.slider
 	parent.master_parameters_fields[parameter] = slider_group.field
