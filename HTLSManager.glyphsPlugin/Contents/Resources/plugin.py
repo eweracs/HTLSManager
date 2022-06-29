@@ -6,6 +6,7 @@ from GlyphsApp import *
 from GlyphsApp.plugins import *
 from vanilla import *
 import uuid
+from HTLSManagerUIElements import *
 
 
 class HTLSManager(GeneralPlugin):
@@ -13,9 +14,11 @@ class HTLSManager(GeneralPlugin):
 	@objc.python_method
 	def settings(self):
 		self.name = Glyphs.localize({
-			"en": "HT Letterpacer Manager",
+			"en": "HT Letterspacer Manager",
 			"de": "HT-Letterspacer-Manager",
-			"fr": "Manager HT Letterspacer"
+			"es": "HT Letterspacer Manager",
+			"fr": "Manager HT Letterspacer",
+			"it": "HT Letterspacer Manager",
 			})
 
 	@objc.python_method
@@ -60,7 +63,7 @@ class HTLSManager(GeneralPlugin):
 				self.font_settings[category] = {}
 
 		# make a vanilla window with two tabs: font settings and master settings
-		self.w = Window((584, 1), "HT LetterSpacer Manager")
+		self.w = Window((1, 1), "HT LetterSpacer Manager")
 
 		self.metrics = {
 			"margin": 10
@@ -93,7 +96,7 @@ class HTLSManager(GeneralPlugin):
 
 			stack_views = []
 			for setting in self.font_settings[category]:
-				stack_views.append(dict(view=self.add_font_setting_group(category, setting)))
+				stack_views.append(dict(view=HTLSFontSettingGroup(self, category, setting)))
 
 			category_group.stackView = VerticalStackView("auto",
 			                                             views=stack_views,
@@ -146,7 +149,7 @@ class HTLSManager(GeneralPlugin):
 
 			stack_views = []
 			for setting in self.font_settings[category]:
-				stack_views.append(dict(view=self.add_master_setting_group(category, setting)))
+				stack_views.append(dict(view=HTLSMasterSettingGroup(self, category, setting)))
 
 			category_group.stackView = VerticalStackView("auto",
 			                                             views=stack_views,
@@ -175,9 +178,43 @@ class HTLSManager(GeneralPlugin):
 			font_tab_rules.append("H:|-margin-[%s]-margin-|" % category)
 
 		# make a vertical rule combining all category groups
-		font_tab_rules.append("V:|-margin-[title]-margin-[%s]-margin-|" % "]-margin-[".join(self.categories))
+		font_tab_rules.append(
+			"V:|-margin-[title]-margin-[%s]-margin-|" % "]-margin-[".join(self.categories)
+		)
 
 		self.masterSettingsTab.addAutoPosSizeRules(font_tab_rules, self.metrics)
+
+		#########################
+		#                       #
+		#    Visualiser tab     #
+		#                       #
+		#########################
+
+		self.visualiserTab.title = TextBox("auto", "Visualiser")
+
+		self.master_parameters_sliders = {}
+		self.master_parameters_fields = {}
+
+		self.visualiserTab.areaSettings = HTLSParameterSlider(self, "paramArea", self.font.selectedFontMaster.id,
+		                                                      1, 1, 100)
+
+		self.visualiserTab.depthSettings = HTLSParameterSlider(self, "paramDepth", self.font.selectedFontMaster.id,
+		                                                       1, 1, 20)
+
+		# add two HTLS glyph views to the visualiser tab
+		self.visualiserTab.leftGlyphView = HTLSGlyphView(self, "n",  self.font.glyphs, self.font.selectedFontMaster.id)
+		self.visualiserTab.rightGlyphView = HTLSGlyphView(self, "o", self.font.glyphs, self.font.selectedFontMaster.id)
+
+		visualiser_tab_rules = [
+			"H:|-margin-[title]",
+			"H:|-margin-[areaSettings]-margin-|",
+			"H:|-margin-[depthSettings]-margin-|",
+			"H:|-margin-[leftGlyphView(200)]-margin-[rightGlyphView(200)]-margin-|",
+			"V:|-margin-[title]-margin-[areaSettings]-margin-[depthSettings]-margin-[leftGlyphView(200)]-margin-|",
+			"V:|-margin-[title]-margin-[areaSettings]-margin-[depthSettings]-margin-[rightGlyphView(200)]-margin-|"
+		]
+
+		self.visualiserTab.addAutoPosSizeRules(visualiser_tab_rules, self.metrics)
 
 		rules = [
 			"H:|-margin-[tabs]-margin-|",
@@ -191,119 +228,6 @@ class HTLSManager(GeneralPlugin):
 		self.w.makeKey()
 
 		Glyphs.addCallback(self.ui_update, UPDATEINTERFACE)
-
-	@objc.python_method
-	def add_font_setting_group(self, category, setting):
-		# return a group for the category group, using the key from the setting to find the group
-		# the group contains a title, a dropdown for the subcategory, a dropdown for the case, an editable text field
-		# for the value, a textfield for the reference glyph, a textfield for the filter
-		# the group has a button to remove the settin
-
-		# if the setting is empty, skip it
-		if len(self.font_settings[category][setting]) == 0:
-			return False
-		current_setting = self.font_settings[category][setting]
-		setting_group = Group("auto")
-		setting_group.subcategory = PopUpButton("auto", self.sub_categories, callback=self.update_font_setting)
-		setting_group.case = PopUpButton("auto", self.cases, callback=self.update_font_setting)
-		setting_group.value = EditText("auto",
-		                               continuous=False,
-		                               text=current_setting["value"],
-		                               callback=self.update_font_setting)
-		setting_group.referenceGlyph = ComboBox("auto",
-		                                        [glyph.name for glyph in self.font.glyphs],
-		                                        callback=self.update_font_setting)
-		setting_group.filter = EditText("auto",
-		                                continuous=False,
-		                                placeholder="None",
-		                                text=current_setting["filter"],
-		                                callback=self.update_font_setting)
-		setting_group.removeButton = Button("auto", "Remove rule",
-		                                    callback=self.remove_font_setting)
-
-		setting_group.subcategory.set(current_setting["subcategory"])
-		setting_group.case.set(current_setting["case"])
-		setting_group.referenceGlyph.set(current_setting["referenceGlyph"])
-
-		group_rules = [
-			"H:|-margin-[subcategory]-margin-[case]-margin-[referenceGlyph(>=90)]-margin-"
-			"[filter(==value)]-margin-[value(60)]-margin-[removeButton]|",
-			"V:|[value(22)]|",
-			"V:|[subcategory(==value)]|",
-			"V:|[case(==value)]|",
-			"V:|[referenceGlyph(==value)]|",
-			"V:|[filter(==value)]|",
-			"V:|[removeButton(==value)]|",
-		]
-
-		setting_group.addAutoPosSizeRules(group_rules, self.metrics)
-
-		# add all group elements to the elements set
-		self.font_settings_elements.add(setting_group.subcategory)
-		self.font_settings_elements.add(setting_group.case)
-		self.font_settings_elements.add(setting_group.value)
-		self.font_settings_elements.add(setting_group.referenceGlyph)
-		self.font_settings_elements.add(setting_group.filter)
-		self.font_settings_elements.add(setting_group.removeButton)
-
-		# add the group to the setting group dictionary with ID
-		self.font_settings_groups[setting] = setting_group
-
-		return setting_group
-
-	@objc.python_method
-	def add_master_setting_group(self, category, setting):
-		# return a group for the category group, using the key from the setting to find the group
-		# the group contains text boxes for the subcategory, the case, the value,
-		# a text box for the reference glyph, a text box for the filter and a text field to change the value,
-		# and a button to reset the value to the default
-
-		# if the setting is empty, skip it
-		if len(self.font_settings[category][setting]) == 0:
-			return False
-		current_setting = self.font_settings[category][setting]
-		setting_group = Group("auto")
-		setting_group.subcategory = TextBox("auto", self.sub_categories[current_setting["subcategory"]])
-		setting_group.case = TextBox("auto", self.cases[current_setting["case"]])
-		setting_group.filter = TextBox("auto", str(current_setting["filter"] or "Any"))
-		setting_group.value = EditText("auto",
-		                               continuous=False,
-		                               text="",
-		                               placeholder=current_setting["value"],
-		                               callback=self.update_master_setting)
-		setting_group.resetButton = Button("auto", "Reset", callback=self.reset_master_setting)
-		setting_group.resetButton.enable(False)
-
-
-		# check if a value is stored in the mastr's user data for the current setting, if yes, use it
-		if self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
-			if setting in self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
-				setting_group.value.set(self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"][setting])
-				setting_group.resetButton.enable(True)
-
-		group_rules = [
-			"H:|-margin-[subcategory(90)]-margin-[case(==subcategory)]-margin-[filter(==subcategory)]-margin-"
-			"[value(==subcategory)]-margin-[value(==subcategory)]-margin-[resetButton]|",
-			"V:|[value(22)]|",
-			"V:|[subcategory(==value)]|",
-			"V:|[case(==value)]|",
-			"V:|[filter(==value)]|",
-			"V:|[resetButton(==value)]|",
-		]
-
-		setting_group.addAutoPosSizeRules(group_rules, self.metrics)
-
-		# add all group elements to the elements set
-		self.master_settings_elements.add(setting_group.subcategory)
-		self.master_settings_elements.add(setting_group.case)
-		self.master_settings_elements.add(setting_group.value)
-		self.master_settings_elements.add(setting_group.filter)
-		self.master_settings_elements.add(setting_group.resetButton)
-
-		# add the group to the setting group dictionary with ID
-		self.master_settings_groups[setting] = setting_group
-
-		return setting_group
 
 	@objc.python_method
 	def add_font_setting(self, sender):
@@ -328,14 +252,14 @@ class HTLSManager(GeneralPlugin):
 		for category in self.categories:
 			if getattr(self.fontSettingsTab, category).addButton == sender:
 				getattr(self.fontSettingsTab, category).stackView.appendView(
-					self.add_font_setting_group(category, setting_id)
+					HTLSFontSettingGroup(self, category, setting_id)
 				)
 				getattr(self.masterSettingsTab, category).stackView.appendView(
-					self.add_master_setting_group(category, setting_id)
+					HTLSMasterSettingGroup(self, category, setting_id)
 				)
 				break
 
-		self.w.resize(584, 1)
+		self.w.resize(632, 1)
 
 		self.write_font_settings()
 
@@ -357,7 +281,7 @@ class HTLSManager(GeneralPlugin):
 		except Exception as e:
 			print(e)
 
-		self.w.resize(584, 1)
+		self.w.resize(632, 1)
 
 		self.write_font_settings()
 
@@ -388,7 +312,7 @@ class HTLSManager(GeneralPlugin):
 									        message="Please only use numbers, with periods for decimal points.")
 									self.font_settings[category][setting][key] = 1
 									sender.set("1")
-								getattr(self.master_settings_groups[setting], key).set(sender.get())
+								getattr(self.master_settings_groups[setting], key).setPlaceholder(sender.get())
 
 							# update the text fields in the master tab
 							if key == "subcategory":
@@ -439,6 +363,10 @@ class HTLSManager(GeneralPlugin):
 	@objc.python_method
 	def write_font_settings(self):
 		self.font.userData["com.eweracs.HTLSManager.fontSettings"] = self.font_settings
+
+	@objc.python_method
+	def set_master_parameter(self, master_id, parameter, value):
+		self.font.masters[master_id].customParameters[parameter] = value
 
 	@objc.python_method
 	def switch_tabs(self, sender):
