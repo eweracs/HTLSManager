@@ -15,7 +15,9 @@ class HTLSGlyphView:
 		self.view_group.glyphView = GlyphView("auto",
 		                                      layer=self.glyphs[self.glyph_name].layers[self.master_id],
 		                                      backgroundColor=NSColor.clearColor())
-		self.view_group.glyphSelector = ComboBox("auto", [glyph.name for glyph in self.glyphs], callback=self.set_glyph)
+		self.view_group.glyphSelector = ComboBox("auto",
+		                                         [glyph.name for glyph in self.glyphs],
+		                                         callback=self.glyph_selector_callback)
 		self.view_group.glyphSelector.set(self.glyph_name)
 		self.view_group.leftSideBearing = TextBox("auto", self.parent.metricsDict[self.glyph_name][self.master_id][0])
 		self.view_group.rightSideBearing = TextBox("auto", self.parent.metricsDict[self.glyph_name][self.master_id][1])
@@ -34,19 +36,23 @@ class HTLSGlyphView:
 
 		self.view_group.addAutoPosSizeRules(view_group_rules, self.parent.metrics)
 
-	def set_glyph(self, sender):
-		try:
-			if sender.get() in self.glyphs:
-				self.glyph_name = self.glyphs[sender.get()].name
-				self.view_group.glyphView.layer = self.glyphs[self.glyph_name].layers[
-					self.parent.font.selectedFontMaster.id]
-		except Exception as e:
-			print(e)
+	def glyph_selector_callback(self, sender):
+		if sender.get() in self.glyphs:
+			self.set_glyph(sender.get())
+
+	def set_glyph(self, glyph_name):
+		if glyph_name in self.glyphs:
+			self.glyph_name = glyph_name
+		self.view_group.glyphView.layer = self.glyphs[self.glyph_name].layers[self.parent.font.selectedFontMaster.id]
+		self.view_group.glyphSelector.set(self.glyph_name)
+		self.view_group.leftSideBearing.set(self.parent.metricsDict[self.glyph_name][self.master_id][0])
+		self.view_group.rightSideBearing.set(self.parent.metricsDict[self.glyph_name][self.master_id][1])
 
 	def update_layer(self, master_id):
-		self.view_group.glyphView.layer = self.glyphs[self.glyph_name].layers[master_id]
-		self.view_group.leftSideBearing.set(self.parent.metricsDict[self.glyph_name][master_id][0])
-		self.view_group.rightSideBearing.set(self.parent.metricsDict[self.glyph_name][master_id][1])
+		self.master_id = master_id
+		self.view_group.glyphView.layer = self.glyphs[self.glyph_name].layers[self.master_id]
+		self.view_group.leftSideBearing.set(self.parent.metricsDict[self.glyph_name][self.master_id][0])
+		self.view_group.rightSideBearing.set(self.parent.metricsDict[self.glyph_name][self.master_id][1])
 
 
 class HTLSParameterSlider:
