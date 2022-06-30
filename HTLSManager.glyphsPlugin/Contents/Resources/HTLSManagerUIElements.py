@@ -68,7 +68,9 @@ class HTLSParameterSlider:
 		# to show the current left side bearing and right side bearing
 		self.slider_group = Group("auto")
 		self.slider_group.title = TextBox("auto",
-		                                  parameter.replace("param", "").title())
+		                                  "%s (%s)" % (parameter.replace("param", "").title(),
+		                                               self.parent.parameters_dict[self.master_id][self.parameter])
+		                                  )
 		self.slider_group.slider = Slider("auto",
 		                                  minValue=self.min_value,
 		                                  maxValue=self.max_value,
@@ -82,7 +84,7 @@ class HTLSParameterSlider:
 
 		# add rules to the slider group
 		slider_group_rules = [
-			"H:|-margin-[title(50)]-margin-[slider]-margin-[field(50)]-margin-|",
+			"H:|-margin-[title(70)]-margin-[slider]-margin-[field(50)]-margin-|",
 			"V:|-margin-[slider]-margin-|",
 			"V:|-margin-[title]",
 			"V:|-margin-[field]",
@@ -104,6 +106,7 @@ class HTLSParameterSlider:
 				return
 			self.parent.master_parameters_sliders[self.parameter].set(int(sender.get()))
 		self.parent.set_master_parameter(self.master_id, self.parameter, int(sender.get()))
+		self.parent.reset_parameters_button_state()
 
 	def ui_update(self, master_id, current_value, min_value, max_value):
 		self.master_id = master_id
@@ -111,6 +114,9 @@ class HTLSParameterSlider:
 		self.slider_group.slider.setMaxValue(max_value)
 		self.slider_group.slider.set(current_value)
 		self.slider_group.field.set(current_value)
+		self.slider_group.title.set("%s (%s)" % (self.parameter.replace("param", "").title(),
+		                                          self.parent.parameters_dict[self.master_id][self.parameter])
+		                            )
 
 
 class HTLSFontSettingGroup:

@@ -233,21 +233,33 @@ class HTLSManager(GeneralPlugin):
 		self.visualiserTab.areaSettings = self.areaSettings.slider_group
 		self.visualiserTab.depthSettings = self.depthSettings.slider_group
 
+		# add one button on the left to reset the parameters to their former values
+		self.visualiserTab.resetParameters = Button("auto", "Reset parameters", callback=self.reset_parameters)
+
+		# add one button on the right to save the parameters
+		self.visualiserTab.saveParameters = Button("auto", "Save parameters", callback=self.save_parameters)
+
 		# add two HTLS glyph views to the visualiser tab
 		self.leftGlyphView = HTLSGlyphView(self, "n", self.font.glyphs, self.font.selectedFontMaster.id)
 		self.visualiserTab.leftGlyphView = self.leftGlyphView.view_group
 		self.rightGlyphView = HTLSGlyphView(self, "o", self.font.glyphs, self.font.selectedFontMaster.id)
 		self.visualiserTab.rightGlyphView = self.rightGlyphView.view_group
 
+		self.reset_parameters_button_state()
+
 		visualiser_tab_rules = [
 			"H:|-margin-[title]",
 			"H:[masterName]-margin-|",
 			"H:|-margin-[areaSettings]-margin-|",
 			"H:|-margin-[depthSettings]-margin-|",
+			"H:|-margin-[resetParameters]",
+			"H:[saveParameters]-margin-|",
 			"H:|-margin-[leftGlyphView(200)]-margin-[rightGlyphView(200)]-margin-|",
 			"V:|-margin-[masterName]",
-			"V:|-margin-[title]-margin-[areaSettings]-margin-[depthSettings]-margin-[leftGlyphView(200)]-margin-|",
-			"V:|-margin-[title]-margin-[areaSettings]-margin-[depthSettings]-margin-[rightGlyphView(200)]-margin-|"
+			"V:|-margin-[title]-margin-[areaSettings]-margin-[depthSettings]-margin-[resetParameters]-margin-["
+			"leftGlyphView(200)]-margin-|",
+			"V:|-margin-[title]-margin-[areaSettings]-margin-[depthSettings]-margin-[saveParameters]-margin-["
+			"rightGlyphView(200)]-margin-|"
 		]
 
 		self.visualiserTab.addAutoPosSizeRules(visualiser_tab_rules, self.metrics)
@@ -258,6 +270,8 @@ class HTLSManager(GeneralPlugin):
 		]
 
 		self.load_preferences()
+
+		self.w.setDefaultButton(self.visualiserTab.saveParameters)
 
 		self.w.addAutoPosSizeRules(rules, self.metrics)
 		self.w.open()
@@ -395,6 +409,39 @@ class HTLSManager(GeneralPlugin):
 		self.font.masters[master_id].customParameters[parameter] = value
 
 	@objc.python_method
+	def reset_parameters(self, sender):
+		for master_id in self.parameters_dict:
+			for parameter in self.parameters_dict[master_id]:
+				self.font.masters[master_id].customParameters[parameter] = self.parameters_dict[master_id][parameter]
+
+		self.update_parameter_ui()
+
+	@objc.python_method
+	def save_parameters(self, sender):
+		self.parameters_dict = {
+			master.id: {
+				"paramArea": master.customParameters["paramArea"] or 400,
+				"paramDepth": master.customParameters["paramDepth"] or 10,
+			} for master in self.font.masters
+		}
+		self.update_parameter_ui()
+
+	@objc.python_method
+	def update_parameter_ui(self):
+		self.areaSettings.ui_update(self.currentMasterID,
+		                            int(self.font.selectedFontMaster.customParameters["paramArea"]),
+		                            1,
+		                            int(self.font.selectedFontMaster.customParameters["paramArea"]) * 2
+		                            )
+
+		self.depthSettings.ui_update(self.currentMasterID,
+		                             int(self.font.selectedFontMaster.customParameters["paramDepth"]),
+		                             1,
+		                             int(self.font.selectedFontMaster.customParameters["paramDepth"]) * 2
+		                             )
+		self.reset_parameters_button_state()
+
+	@objc.python_method
 	def switch_tabs(self, sender):
 		self.w.resize(1, 1)
 
@@ -408,22 +455,7 @@ class HTLSManager(GeneralPlugin):
 			self.masterSettingsTab.masterName.set("Master: %s" % self.font.selectedFontMaster.name)
 			self.visualiserTab.masterName.set("Master: %s" % self.font.selectedFontMaster.name)
 
-			# uüdate the layers for each glyph view in the visualiser tab
-			self.leftGlyphView.update_layer(self.currentMasterID)
-			self.rightGlyphView.update_layer(self.currentMasterID)
-
-			# update the values in the slider and text fields
-			self.areaSettings.ui_update(self.currentMasterID,
-			                            int(self.font.selectedFontMaster.customParameters["paramArea"]),
-			                            1,
-			                            int(self.font.selectedFontMaster.customParameters["paramArea"]) * 2
-			                            )
-
-			self.depthSettings.ui_update(self.currentMasterID,
-			                             int(self.font.selectedFontMaster.customParameters["paramDepth"]),
-			                             1,
-			                             int(self.font.selectedFontMaster.customParameters["paramDepth"]) * 2
-			                             )
+			self.update_parameter_ui()
 
 			# read the current master's user data and update all fields in the master settings tab accordingly
 			if self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
@@ -444,6 +476,17 @@ class HTLSManager(GeneralPlugin):
 							getattr(self.master_settings_groups[setting], "value").set("")
 							# disable the reset button
 							self.master_settings_groups[setting].resetButton.enable(False)
+
+	@objc.python_method
+	def reset_parameters_button_state(self):
+		# check whether the area and depth settings match the saved settings, only if not, enable the reset button
+		for parameter in ["paramArea", "paramDepth"]:
+			if self.font.selectedFontMaster.customParameters[parameter] != \
+					self.parameters_dict[self.currentMasterID][parameter]:
+				self.visualiserTab.resetParameters.enable(True)
+				break
+			else:
+				self.visualiserTab.resetParameters.enable(False)
 
 	@objc.python_method
 	def load_preferences(self):
