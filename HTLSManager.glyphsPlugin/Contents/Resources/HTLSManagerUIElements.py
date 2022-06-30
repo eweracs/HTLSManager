@@ -105,8 +105,19 @@ class HTLSParameterSlider:
 				Message(title="Value must be a number", message="Please only enter whole number values.", )
 				return
 			self.parent.master_parameters_sliders[self.parameter].set(int(sender.get()))
+
 		self.parent.set_master_parameter(self.master_id, self.parameter, int(sender.get()))
-		self.parent.reset_parameters_button_state()
+		self.parent.toggle_reset_parameters_button()
+		self.parent.reset_area_slider_position(sender.get())
+		self.current_value = float(sender.get())
+
+	def reset_slider_position(self, value):
+		if value == self.current_value:  # check whether slider was released
+			self.min_value = int(self.current_value) - 100
+			self.max_value = int(self.current_value )+ 100
+			self.slider_group.slider.set(int(self.current_value))
+			self.slider_group.slider.setMinValue(self.min_value)
+			self.slider_group.slider.setMaxValue(self.max_value)
 
 	def ui_update(self, master_id, current_value, min_value, max_value):
 		self.master_id = master_id
