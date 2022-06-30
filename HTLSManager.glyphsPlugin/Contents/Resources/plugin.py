@@ -9,6 +9,8 @@ import uuid
 from HTLSManagerUIElements import *
 
 # TODO: Sync rules/parameters from master
+# TODO: Custom profiles for font settings
+# TODO: Write autospace.py file
 
 
 class HTLSManager(GeneralPlugin):
@@ -136,15 +138,20 @@ class HTLSManager(GeneralPlugin):
 
 			setattr(self.fontSettingsTab, category, category_group)
 
+		# add a button to import a file
+		self.fontSettingsTab.importButton = Button("auto", "Import config file...", callback=self.import_config_file)
+
 		font_tab_rules = [
 			"H:|-margin-[title]-margin-|",
+			"H:[importButton]-margin-|",
 		]
 
 		# for each category group, add a rule to the font_tab_rules list
 		for category in self.categories:
 			font_tab_rules.append("H:|-margin-[%s]-margin-|" % category)
 		# make a vertical rule combining all category groups
-		font_tab_rules.append("V:|-margin-[title]-margin-[%s]-margin-|" % "]-margin-[".join(self.categories))
+		font_tab_rules.append("V:|-margin-[title]-margin-[%s]-margin-[importButton]-margin-|" % "]-margin-[".join(
+			self.categories))
 
 		self.fontSettingsTab.addAutoPosSizeRules(font_tab_rules, self.metrics)
 
@@ -519,6 +526,69 @@ class HTLSManager(GeneralPlugin):
 		self.areaSettings.reset_slider_position(value)
 
 	@objc.python_method
+	def import_config_file(self, sender):
+
+		interpreter_dict = {
+			"subcategory": {
+				"*": 0,
+				"Ligature": 1,
+				"Superscript": 2,
+				"Decimal Digit": 3,
+				"Fraction": 4,
+				"Small": 5,
+				"Space": 6,
+				"Nonspacing": 7,
+				"Dash": 8,
+				"Parenthesis": 9,
+				"Quote": 10,
+				"Currency": 11,
+				"Emoji": 12,
+				"Math": 13,
+				"Arrow": 14,
+				"Geometry": 15,
+				"Spacing": 16,
+				"Modifier": 17,
+				"Other": 0
+			},
+			"case": {
+				"*": 0,
+				"upper": 1,
+				"lower": 2,
+				"smallCaps": 3,
+				"minor": 4,
+				"other": 5
+			}
+
+		}
+
+		current_path = self.font.filepath
+		config_path = GetOpenFile(message="Import autospace.py file", filetypes=["py"], path=current_path)
+		if config_path is None:
+			return
+
+		self.imported_config = {category: {} for category in self.categories}
+
+		try:
+			with open(config_path) as config_file:
+				for line in config_file:
+					if line.startswith("#") or len(line) < 12:
+						continue
+					key = str(uuid.uuid4()).replace("-", "")
+					category = line.split(",")[1]
+					self.imported_config[category][key] = {}
+					self.imported_config[category][key]["subcategory"] = interpreter_dict[
+						"subcategory"][line.split(",")[2]]
+					self.imported_config[category][key]["case"] = interpreter_dict["case"][line.split(",")[3]]
+					self.imported_config[category][key]["value"] = line.split(",")[4]
+					self.imported_config[category][key]["referenceGlyph"] = line.split(",")[5].replace("*", "")
+					self.imported_config[category][key]["filter"] = line.split(",")[6].replace("*", "")
+
+			self.font.userData["com.eweracs.HTLSManager.fontSettings"] = self.imported_config
+
+		except Exception as e:
+			print(e)
+
+	@objc.python_method
 	def load_preferences(self):
 		try:
 			self.w.tabs.set(Glyphs.defaults["com.eweracs.HTLSManager.tab"])
@@ -528,7 +598,8 @@ class HTLSManager(GeneralPlugin):
 			self.leftGlyphView.set_glyph(Glyphs.defaults["com.eweracs.HTLSManager.leftGlyph"])
 			self.rightGlyphView.set_glyph(Glyphs.defaults["com.eweracs.HTLSManager.rightGlyph"])
 		except Exception as e:
-			print(e)
+			import traceback
+			traceback.print_exc()
 
 	@objc.python_method
 	def write_preferences(self):
