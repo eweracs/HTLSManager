@@ -75,6 +75,12 @@ class HTLSManager(GeneralPlugin):
 			if category not in self.font_settings:
 				self.font_settings[category] = {}
 
+		# add a default value for area and depth to every master if not present
+		for master in self.font.masters:
+			for parameter in self.parameters_dict[master.id]:
+				if parameter not in master.customParameters:
+					master.customParameters[parameter] = self.parameters_dict[master.id][parameter]
+
 		# make a vanilla window with two tabs: font settings and master settings
 		self.w = FloatingWindow((1, 1), "HT LetterSpacer Manager")
 
@@ -208,6 +214,8 @@ class HTLSManager(GeneralPlugin):
 		                                        "Master: %s" % self.font.selectedFontMaster.name,
 		                                        alignment="right")
 
+		self.current_area_value = self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"]
+
 		self.master_parameters_sliders = {}
 		self.master_parameters_fields = {}
 		self.visualiser_glyph_views = {}
@@ -245,7 +253,7 @@ class HTLSManager(GeneralPlugin):
 		self.rightGlyphView = HTLSGlyphView(self, "o", self.font.glyphs, self.font.selectedFontMaster.id)
 		self.visualiserTab.rightGlyphView = self.rightGlyphView.view_group
 
-		self.reset_parameters_button_state()
+		self.toggle_reset_parameters_button()
 
 		visualiser_tab_rules = [
 			"H:|-margin-[title]",
@@ -270,6 +278,7 @@ class HTLSManager(GeneralPlugin):
 		]
 
 		self.load_preferences()
+		self.switch_tabs(None, self.w.tabs.get())
 
 		self.w.setDefaultButton(self.visualiserTab.saveParameters)
 
@@ -320,9 +329,13 @@ class HTLSManager(GeneralPlugin):
 					getattr(self.fontSettingsTab, category).stackView.removeView(self.font_settings_groups[setting])
 					getattr(self.masterSettingsTab, category).stackView.removeView(self.master_settings_groups[setting])
 
+					if self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
+						if setting in self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
+							del self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"][setting]
+						if len(self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]) == 0:
+							del self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]
 					del self.font_settings[category][setting]
-					if setting in self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
-						del self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"][setting]
+					break
 
 		self.w.resize(632, 1)
 
@@ -439,11 +452,18 @@ class HTLSManager(GeneralPlugin):
 		                             1,
 		                             int(self.font.selectedFontMaster.customParameters["paramDepth"]) * 2
 		                             )
-		self.reset_parameters_button_state()
+		self.toggle_reset_parameters_button()
 
 	@objc.python_method
-	def switch_tabs(self, sender):
-		self.w.resize(1, 1)
+	def switch_tabs(self, sender, tab_index=None):
+		if not tab_index:
+			tab_index = sender.get()
+		if tab_index == 0:
+			self.w.resize(632, 1)
+		if tab_index == 1:
+			self.w.resize(522, 1)
+		if tab_index == 2:
+			self.w.resize(1, 1)
 
 	@objc.python_method
 	def ui_update(self, sender):
@@ -478,7 +498,7 @@ class HTLSManager(GeneralPlugin):
 							self.master_settings_groups[setting].resetButton.enable(False)
 
 	@objc.python_method
-	def reset_parameters_button_state(self):
+	def toggle_reset_parameters_button(self):
 		# check whether the area and depth settings match the saved settings, only if not, enable the reset button
 		for parameter in ["paramArea", "paramDepth"]:
 			if self.font.selectedFontMaster.customParameters[parameter] != \
@@ -487,6 +507,10 @@ class HTLSManager(GeneralPlugin):
 				break
 			else:
 				self.visualiserTab.resetParameters.enable(False)
+
+	@objc.python_method
+	def reset_area_slider_position(self, value):
+		self.areaSettings.reset_slider_position(value)
 
 	@objc.python_method
 	def load_preferences(self):
