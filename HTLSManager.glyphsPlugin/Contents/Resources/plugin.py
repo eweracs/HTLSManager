@@ -8,6 +8,8 @@ from vanilla import *
 import uuid
 from HTLSManagerUIElements import *
 
+# TODO: Sync rules/parameters from master
+
 
 class HTLSManager(GeneralPlugin):
 
@@ -456,8 +458,8 @@ class HTLSManager(GeneralPlugin):
 
 	@objc.python_method
 	def switch_tabs(self, sender, tab_index=None):
-		if not tab_index:
-			tab_index = sender.get()
+		if not tab_index and sender:
+			tab_index = sender.get() or 0
 		if tab_index == 0:
 			self.w.resize(632, 1)
 		if tab_index == 1:
@@ -478,14 +480,14 @@ class HTLSManager(GeneralPlugin):
 			self.update_parameter_ui()
 
 			# read the current master's user data and update all fields in the master settings tab accordingly
-			if self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
-				for category in self.categories:
-					for setting in self.font_settings[category]:
-						for key in self.font_settings[category][setting]:
-							if key == "value":
-								getattr(self.master_settings_groups[setting], key).set(
-									self.font_settings[category][setting][key]
-								)
+			for category in self.categories:
+				for setting in self.font_settings[category]:
+					for key in self.font_settings[category][setting]:
+						if key == "value":
+							getattr(self.master_settings_groups[setting], key).set(
+								self.font_settings[category][setting][key]
+							)
+					if self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
 						if setting in self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
 							getattr(self.master_settings_groups[setting], "value").set(
 								self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"][setting]
@@ -496,6 +498,10 @@ class HTLSManager(GeneralPlugin):
 							getattr(self.master_settings_groups[setting], "value").set("")
 							# disable the reset button
 							self.master_settings_groups[setting].resetButton.enable(False)
+					else:
+						getattr(self.master_settings_groups[setting], "value").set("")
+						# disable the reset button
+						self.master_settings_groups[setting].resetButton.enable(False)
 
 	@objc.python_method
 	def toggle_reset_parameters_button(self):
