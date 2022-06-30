@@ -233,7 +233,7 @@ class HTLSManager(GeneralPlugin):
 			"V:|-margin-[tabs]-margin-|",
 		]
 
-		self.w.addAutoPosSizeRules(rules, self.metrics)
+		self.load_preferences()
 
 		self.w.addAutoPosSizeRules(rules, self.metrics)
 		self.w.open()
@@ -245,20 +245,16 @@ class HTLSManager(GeneralPlugin):
 	@objc.python_method
 	def add_font_setting(self, sender):
 		setting_id = str(uuid.uuid4()).replace("-", "")
-		try:
-			for category in self.categories:
-				if getattr(self.fontSettingsTab, category).addButton == sender:
-					self.font_settings[category][setting_id] = {
-						"subcategory": 0,
-						"case": 0,
-						"value": 1,
-						"referenceGlyph": "",
-						"filter": ""
-					}
-					break
-
-		except Exception as e:
-			print(e)
+		for category in self.categories:
+			if getattr(self.fontSettingsTab, category).addButton == sender:
+				self.font_settings[category][setting_id] = {
+					"subcategory": 0,
+					"case": 0,
+					"value": 1,
+					"referenceGlyph": "",
+					"filter": ""
+				}
+				break
 
 		# find the stack view for the category and add a font setting in the font view, and a master setting in the
 		# master view
@@ -280,19 +276,15 @@ class HTLSManager(GeneralPlugin):
 	def remove_font_setting(self, sender):
 		# remove the view that the remove button belongs to from the stack view in the font settings and master
 		# settings tab
-		try:
-			for category in self.categories:
-				for setting in self.font_settings[category]:
-					if self.font_settings_groups[setting].removeButton == sender:
-						getattr(self.fontSettingsTab, category).stackView.removeView(self.font_settings_groups[setting])
-						getattr(self.masterSettingsTab, category).stackView.removeView(self.master_settings_groups[setting])
+		for category in self.categories:
+			for setting in self.font_settings[category]:
+				if self.font_settings_groups[setting].removeButton == sender:
+					getattr(self.fontSettingsTab, category).stackView.removeView(self.font_settings_groups[setting])
+					getattr(self.masterSettingsTab, category).stackView.removeView(self.master_settings_groups[setting])
 
-						del self.font_settings[category][setting]
-						if setting in self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
-							del self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"][setting]
-
-		except Exception as e:
-			print(e)
+					del self.font_settings[category][setting]
+					if setting in self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
+						del self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"][setting]
 
 		self.w.resize(632, 1)
 
@@ -300,44 +292,41 @@ class HTLSManager(GeneralPlugin):
 
 	@objc.python_method
 	def update_font_setting(self, sender):
-		try:
-			for category in self.categories:
-				for setting in self.font_settings[category]:
-					for key in self.font_settings[category][setting]:
-						if getattr(self.font_settings_groups[setting], key) == sender:
+		for category in self.categories:
+			for setting in self.font_settings[category]:
+				for key in self.font_settings[category][setting]:
+					if getattr(self.font_settings_groups[setting], key) == sender:
 
+						self.font_settings[category][setting][key] = sender.get()
+
+						# if the sender is the reference glyph, check if the glyph exists.
+						if key == "referenceGlyph":
+							if sender.get() not in self.font.glyphs and sender.get() is not "":
+								Message(title="Error",
+								        message="The glyph %s does not exist in the font." % sender.get())
+								sender.set(self.font.glyphs[0].name)
 							self.font_settings[category][setting][key] = sender.get()
 
-							# if the sender is the reference glyph, check if the glyph exists.
-							if key == "referenceGlyph":
-								if sender.get() not in self.font.glyphs and sender.get() is not "":
-									Message(title="Error",
-									        message="The glyph %s does not exist in the font." % sender.get())
-									sender.set(self.font.glyphs[0].name)
-								self.font_settings[category][setting][key] = sender.get()
+						# if the sender is for the value, make sure it is a number
+						if key == "value":
+							try:
+								float(sender.get())
+							except ValueError:
+								Message(title="Value must be a number",
+								        message="Please only use numbers, with periods for decimal points.")
+								self.font_settings[category][setting][key] = 1
+								sender.set("1")
+							getattr(self.master_settings_groups[setting], key).setPlaceholder(sender.get())
 
-							# if the sender is for the value, make sure it is a number
-							if key == "value":
-								try:
-									float(sender.get())
-								except ValueError:
-									Message(title="Value must be a number",
-									        message="Please only use numbers, with periods for decimal points.")
-									self.font_settings[category][setting][key] = 1
-									sender.set("1")
-								getattr(self.master_settings_groups[setting], key).setPlaceholder(sender.get())
+						# update the text fields in the master tab
+						if key == "subcategory":
+							self.master_settings_groups[setting].subcategory.set(self.sub_categories[sender.get()])
+						elif key == "case":
+							self.master_settings_groups[setting].case.set(self.cases[sender.get()])
+						if key == "filter":
+							getattr(self.master_settings_groups[setting], key).set(sender.get() or "Any")
 
-							# update the text fields in the master tab
-							if key == "subcategory":
-								self.master_settings_groups[setting].subcategory.set(self.sub_categories[sender.get()])
-							elif key == "case":
-								self.master_settings_groups[setting].case.set(self.cases[sender.get()])
-							if key == "filter":
-								getattr(self.master_settings_groups[setting], key).set(sender.get() or "Any")
-
-							break
-		except Exception as e:
-			print(e)
+						break
 
 		self.write_font_settings()
 
@@ -417,8 +406,27 @@ class HTLSManager(GeneralPlugin):
 							self.master_settings_groups[setting].resetButton.enable(False)
 
 	@objc.python_method
+	def load_preferences(self):
+		try:
+			self.w.tabs.set(Glyphs.defaults["com.eweracs.HTLSManager.tab"])
+		except:
+			pass
+		try:
+			self.leftGlyphView.set_glyph(Glyphs.defaults["com.eweracs.HTLSManager.leftGlyph"])
+			self.rightGlyphView.set_glyph(Glyphs.defaults["com.eweracs.HTLSManager.rightGlyph"])
+		except Exception as e:
+			print(e)
+
+	@objc.python_method
+	def write_preferences(self):
+		Glyphs.defaults["com.eweracs.HTLSManager.tab"] = self.w.tabs.get()
+		Glyphs.defaults["com.eweracs.HTLSManager.leftGlyph"] = self.leftGlyphView.glyph_name
+		Glyphs.defaults["com.eweracs.HTLSManager.rightGlyph"] = self.rightGlyphView.glyph_name
+
+	@objc.python_method
 	def close(self, sender):
 		Glyphs.removeCallback(self.ui_update)
+		self.write_preferences()
 
 	@objc.python_method
 	def __file__(self):
