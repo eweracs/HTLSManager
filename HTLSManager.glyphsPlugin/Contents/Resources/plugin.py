@@ -19,7 +19,7 @@ class HTLSManager(GeneralPlugin):
 			"es": "HT Letterspacer Manager",
 			"fr": "Manager HT Letterspacer",
 			"it": "HT Letterspacer Manager",
-			})
+		})
 
 	@objc.python_method
 	def start(self):
@@ -31,9 +31,22 @@ class HTLSManager(GeneralPlugin):
 
 		if self.font is None:
 			Message("Select a font project!", "No font selected")
-		# return
+			return
 
 		self.currentMasterID = self.font.selectedFontMaster.id
+
+		self.parameters_dict = {
+			master.id: {
+				"paramArea": master.customParameters["paramArea"] or 400,
+				"paramDepth": master.customParameters["paramDepth"] or 10,
+			} for master in self.font.masters
+		}
+
+		self.metricsDict = {
+			glyph.name: {
+				layer.associatedMasterId: [layer.LSB, layer.RSB] for layer in glyph.layers if layer.isMasterLayer
+			} for glyph in self.font.glyphs
+		}
 
 		# Make a list of all categories of the glyphs in the font
 		self.categories = []
@@ -192,27 +205,38 @@ class HTLSManager(GeneralPlugin):
 
 		self.visualiserTab.title = TextBox("auto", "Visualiser")
 		self.visualiserTab.masterName = TextBox("auto",
-		                                            "Master: %s" % self.font.selectedFontMaster.name,
-		                                            alignment="right")
+		                                        "Master: %s" % self.font.selectedFontMaster.name,
+		                                        alignment="right")
 
 		self.master_parameters_sliders = {}
 		self.master_parameters_fields = {}
 		self.visualiser_glyph_views = {}
 
-		self.visualiserTab.areaSettings = HTLSParameterSlider(self, "paramArea", self.font.selectedFontMaster.id,
-		                                                      1, 1, 100).slider_group
+		self.areaSettings = HTLSParameterSlider(
+			self,
+			"paramArea",
+			self.font.selectedFontMaster.id,
+			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"]),
+			1,
+			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"] * 2)
+		)
 
-		self.visualiserTab.depthSettings = HTLSParameterSlider(self, "paramDepth", self.font.selectedFontMaster.id,
-		                                                       1, 1, 20).slider_group
-		self.metricsDict = {
-			glyph.name: {
-				layer.associatedMasterId: [layer.LSB, layer.RSB] for layer in glyph.layers if layer.isMasterLayer
-			} for glyph in self.font.glyphs
-		}
+		self.depthSettings = HTLSParameterSlider(
+			self,
+			"paramDepth",
+			self.font.selectedFontMaster.id,
+			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramDepth"]),
+			1,
+			20
+		)
+
+		self.visualiserTab.areaSettings = self.areaSettings.slider_group
+		self.visualiserTab.depthSettings = self.depthSettings.slider_group
+
 		# add two HTLS glyph views to the visualiser tab
-		self.leftGlyphView = HTLSGlyphView(self, "n",  self.font.glyphs, self.font.selectedFontMaster.id)
+		self.leftGlyphView = HTLSGlyphView(self, "n", self.font.glyphs, self.font.selectedFontMaster.id)
 		self.visualiserTab.leftGlyphView = self.leftGlyphView.view_group
-		self.rightGlyphView = HTLSGlyphView(self, "o",  self.font.glyphs, self.font.selectedFontMaster.id)
+		self.rightGlyphView = HTLSGlyphView(self, "o", self.font.glyphs, self.font.selectedFontMaster.id)
 		self.visualiserTab.rightGlyphView = self.rightGlyphView.view_group
 
 		visualiser_tab_rules = [
@@ -379,12 +403,28 @@ class HTLSManager(GeneralPlugin):
 		# check if the master was switched
 		if self.currentMasterID != self.font.selectedFontMaster.id:
 			self.currentMasterID = self.font.selectedFontMaster.id
+
 			# update the master name in the master settings and visualiser tab title
 			self.masterSettingsTab.masterName.set("Master: %s" % self.font.selectedFontMaster.name)
 			self.visualiserTab.masterName.set("Master: %s" % self.font.selectedFontMaster.name)
+
 			# uüdate the layers for each glyph view in the visualiser tab
-			self.leftGlyphView.update_layer(self.font.selectedFontMaster.id)
-			self.rightGlyphView.update_layer(self.font.selectedFontMaster.id)
+			self.leftGlyphView.update_layer(self.currentMasterID)
+			self.rightGlyphView.update_layer(self.currentMasterID)
+
+			# update the values in the slider and text fields
+			self.areaSettings.ui_update(self.currentMasterID,
+			                            int(self.font.selectedFontMaster.customParameters["paramArea"]),
+			                            1,
+			                            int(self.font.selectedFontMaster.customParameters["paramArea"]) * 2
+			                            )
+
+			self.depthSettings.ui_update(self.currentMasterID,
+			                             int(self.font.selectedFontMaster.customParameters["paramDepth"]),
+			                             1,
+			                             int(self.font.selectedFontMaster.customParameters["paramDepth"]) * 2
+			                             )
+
 			# read the current master's user data and update all fields in the master settings tab accordingly
 			if self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
 				for category in self.categories:

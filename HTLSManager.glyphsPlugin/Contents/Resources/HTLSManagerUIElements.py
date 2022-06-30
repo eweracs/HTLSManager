@@ -60,6 +60,9 @@ class HTLSParameterSlider:
 		self.parent = parent
 		self.parameter = parameter
 		self.master_id = master_id
+		self.current_value = current_value
+		self.min_value = min_value
+		self.max_value = max_value
 
 		# add a group with the following elements: a Slider, a TextBox to show the current value of the parameter
 		# to show the current left side bearing and right side bearing
@@ -67,14 +70,15 @@ class HTLSParameterSlider:
 		self.slider_group.title = TextBox("auto",
 		                                  parameter.replace("param", "").title())
 		self.slider_group.slider = Slider("auto",
-		                                  minValue=min_value,
-		                                  maxValue=max_value,
-		                                  value=current_value,
-		                                  callback=self.set_master_parameters)
+		                                  minValue=self.min_value,
+		                                  maxValue=self.max_value,
+		                                  callback=self.enter_parameter_callback)
 		self.slider_group.field = EditText("auto",
-		                                   text=current_value,
+		                                   text=self.current_value,
 		                                   continuous=False,
-		                                   callback=self.set_master_parameters)
+		                                   callback=self.enter_parameter_callback)
+
+		self.slider_group.slider.set(self.current_value)
 
 		# add rules to the slider group
 		slider_group_rules = [
@@ -89,7 +93,7 @@ class HTLSParameterSlider:
 
 		self.slider_group.addAutoPosSizeRules(slider_group_rules, parent.metrics)
 
-	def set_master_parameters(self, sender):
+	def enter_parameter_callback(self, sender):
 		# if the sender is the slider, update the value text field
 		if sender == self.parent.master_parameters_sliders[self.parameter]:
 			self.parent.master_parameters_fields[self.parameter].set(int(sender.get()))
@@ -100,6 +104,13 @@ class HTLSParameterSlider:
 				return
 			self.parent.master_parameters_sliders[self.parameter].set(int(sender.get()))
 		self.parent.set_master_parameter(self.master_id, self.parameter, int(sender.get()))
+
+	def ui_update(self, master_id, current_value, min_value, max_value):
+		self.master_id = master_id
+		self.slider_group.slider.setMinValue(min_value)
+		self.slider_group.slider.setMaxValue(max_value)
+		self.slider_group.slider.set(current_value)
+		self.slider_group.field.set(current_value)
 
 
 class HTLSFontSettingGroup:
