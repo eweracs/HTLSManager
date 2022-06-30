@@ -96,7 +96,7 @@ class HTLSManager(GeneralPlugin):
 
 			stack_views = []
 			for setting in self.font_settings[category]:
-				stack_views.append(dict(view=HTLSFontSettingGroup(self, category, setting)))
+				stack_views.append(dict(view=HTLSFontSettingGroup(self, category, setting).setting_group))
 
 			category_group.stackView = VerticalStackView("auto",
 			                                             views=stack_views,
@@ -149,7 +149,7 @@ class HTLSManager(GeneralPlugin):
 
 			stack_views = []
 			for setting in self.font_settings[category]:
-				stack_views.append(dict(view=HTLSMasterSettingGroup(self, category, setting)))
+				stack_views.append(dict(view=HTLSMasterSettingGroup(self, category, setting).setting_group))
 
 			category_group.stackView = VerticalStackView("auto",
 			                                             views=stack_views,
@@ -197,16 +197,23 @@ class HTLSManager(GeneralPlugin):
 
 		self.master_parameters_sliders = {}
 		self.master_parameters_fields = {}
+		self.visualiser_glyph_views = {}
 
 		self.visualiserTab.areaSettings = HTLSParameterSlider(self, "paramArea", self.font.selectedFontMaster.id,
-		                                                      1, 1, 100)
+		                                                      1, 1, 100).slider_group
 
 		self.visualiserTab.depthSettings = HTLSParameterSlider(self, "paramDepth", self.font.selectedFontMaster.id,
-		                                                       1, 1, 20)
-
+		                                                       1, 1, 20).slider_group
+		self.metricsDict = {
+			glyph.name: {
+				layer.associatedMasterId: [layer.LSB, layer.RSB] for layer in glyph.layers if layer.isMasterLayer
+			} for glyph in self.font.glyphs
+		}
 		# add two HTLS glyph views to the visualiser tab
-		self.visualiserTab.leftGlyphView = HTLSGlyphView(self, "n",  self.font.glyphs, self.font.selectedFontMaster.id)
-		self.visualiserTab.rightGlyphView = HTLSGlyphView(self, "o", self.font.glyphs, self.font.selectedFontMaster.id)
+		self.leftGlyphView = HTLSGlyphView(self, "n",  self.font.glyphs, self.font.selectedFontMaster.id)
+		self.visualiserTab.leftGlyphView = self.leftGlyphView.view_group
+		self.rightGlyphView = HTLSGlyphView(self, "o",  self.font.glyphs, self.font.selectedFontMaster.id)
+		self.visualiserTab.rightGlyphView = self.rightGlyphView.view_group
 
 		visualiser_tab_rules = [
 			"H:|-margin-[title]",
@@ -258,10 +265,10 @@ class HTLSManager(GeneralPlugin):
 		for category in self.categories:
 			if getattr(self.fontSettingsTab, category).addButton == sender:
 				getattr(self.fontSettingsTab, category).stackView.appendView(
-					HTLSFontSettingGroup(self, category, setting_id)
+					HTLSFontSettingGroup(self, category, setting_id).setting_group
 				)
 				getattr(self.masterSettingsTab, category).stackView.appendView(
-					HTLSMasterSettingGroup(self, category, setting_id)
+					HTLSMasterSettingGroup(self, category, setting_id).setting_group
 				)
 				break
 
@@ -386,6 +393,9 @@ class HTLSManager(GeneralPlugin):
 			# update the master name in the master settings and visualiser tab title
 			self.masterSettingsTab.masterName.set("Master: %s" % self.font.selectedFontMaster.name)
 			self.visualiserTab.masterName.set("Master: %s" % self.font.selectedFontMaster.name)
+			# uüdate the layers for each glyph view in the visualiser tab
+			self.leftGlyphView.update_layer(self.font.selectedFontMaster.id)
+			self.rightGlyphView.update_layer(self.font.selectedFontMaster.id)
 			# read the current master's user data and update all fields in the master settings tab accordingly
 			if self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
 				for category in self.categories:
