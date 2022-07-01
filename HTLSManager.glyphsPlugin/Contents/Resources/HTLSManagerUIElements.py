@@ -163,7 +163,7 @@ class HTLSFontSettingGroup:
 		self.setting_group.removeButton = Button("auto", "Remove rule",
 		                                         callback=self.parent.remove_font_setting)
 
-		self.setting_group.subcategory.set(self.current_setting["subcategory"])
+		self.setting_group.subcategory.setItem(self.current_setting["subcategory"])
 		self.setting_group.case.set(self.current_setting["case"])
 		self.setting_group.referenceGlyph.set(self.current_setting["referenceGlyph"])
 
@@ -202,7 +202,7 @@ class HTLSMasterSettingGroup:
 			return
 		self.current_setting = self.parent.font_settings[self.category][self.setting]
 		self.setting_group = Group("auto")
-		self.setting_group.subcategory = TextBox("auto", self.parent.sub_categories[self.current_setting["subcategory"]])
+		self.setting_group.subcategory = TextBox("auto", self.current_setting["subcategory"])
 		self.setting_group.case = TextBox("auto", self.parent.cases[self.current_setting["case"]])
 		self.setting_group.filter = TextBox("auto", str(self.current_setting["filter"] or "Any"))
 		self.setting_group.value = EditText("auto",

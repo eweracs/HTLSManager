@@ -5,11 +5,14 @@ import objc
 from GlyphsApp import *
 from GlyphsApp.plugins import *
 from vanilla import *
-import uuid
+from vanilla import dialogs
+
 from HTLSManagerUIElements import *
+from HTLSConfigConverter import *
+
 
 # TODO: Sync rules/parameters from master
-# TODO: Custom profiles for font settings
+# TODO: Custom profiles for font settings: resfresh view on change
 # TODO: Write autospace.py file
 
 
@@ -53,16 +56,14 @@ class HTLSManager(GeneralPlugin):
 		}
 
 		# Make a list of all categories of the glyphs in the font
-		self.categories = []
-		for glyph in self.font.glyphs:
-			if glyph.category and glyph.category not in self.categories:
-				self.categories.append(glyph.category)
+		self.categories = ["Letter", "Number", "Punctuation", "Symbol", "Mark"]
 
 		# Make a list of all subcategories of the glyphs in the font
 		self.sub_categories = ["Any"]
 		for glyph in self.font.glyphs:
 			if glyph.subCategory and glyph.subCategory not in self.sub_categories:
 				self.sub_categories.append(glyph.subCategory)
+		self.sub_categories.append("Other")
 
 		# Make a list of all cases
 		self.cases = ["Any", "Uppercase", "Lowercase", "Smallcaps", "Minor", "Other"]
@@ -85,6 +86,62 @@ class HTLSManager(GeneralPlugin):
 				if parameter not in master.customParameters:
 					master.customParameters[parameter] = self.parameters_dict[master.id][parameter]
 
+		self.default_profile = {
+			"Letter": {
+				str(uuid.uuid4()).replace("-", ""): {
+					"subcategory": "Any",
+					"case": 1,
+					"value": 1.25,
+					"reference glyph": "H",
+					"filter": ""
+				},
+				str(uuid.uuid4()).replace("-", ""): {
+					"subcategory": "Any",
+					"case": 2,
+					"value": 1,
+					"reference glyph": "x",
+					"filter": ""
+				},
+				str(uuid.uuid4()).replace("-", ""): {
+					"subcategory": "Any",
+					"case": 3,
+					"value": 1.2,
+					"reference glyph": "h.sc",
+					"filter": ""
+				}
+			},
+			"Number": {
+				str(uuid.uuid4()).replace("-", ""): {
+					"subcategory": "Decimal Digit",
+					"case": 1,
+					"value": 1.25,
+					"reference glyph": "H",
+					"filter": ""
+				},
+				str(uuid.uuid4()).replace("-", ""): {
+					"subcategory": "Decimal Digit",
+					"case": 2,
+					"value": 1.25,
+					"reference glyph": "x",
+					"filter": ""
+				},
+				str(uuid.uuid4()).replace("-", ""): {
+					"subcategory": "Decimal Digit",
+					"case": 4,
+					"value": 0.8,
+					"reference glyph": "one.dnom",
+					"filter": ".dnom"
+				}
+			},
+			"Punctuation": {},
+			"Symbol": {},
+			"Mark": {}
+		}
+
+		self.user_profiles = dict(Glyphs.defaults["com.eweracs.HTLSManager.userProfiles"] or {
+			"Default": self.default_profile
+		})
+
 		# make a vanilla window with two tabs: font settings and master settings
 		self.w = FloatingWindow((1, 1), "HT LetterSpacer Manager")
 
@@ -105,6 +162,21 @@ class HTLSManager(GeneralPlugin):
 		#########################
 
 		self.fontSettingsTab.title = TextBox("auto", "Spacing rules")
+
+		self.fontSettingsTab.profiles = Group("auto")
+		self.fontSettingsTab.profiles.title = TextBox("auto", "Load profile:")
+		self.fontSettingsTab.profiles.selector = PopUpButton("auto",
+		                                                     ["Choose..."] + [profile for profile in
+		                                                                      self.user_profiles],
+		                                                     callback=self.load_profile)
+
+		profiles_rules = [
+			"H:|[title]-margin-[selector(160)]|",
+			"V:|[title]",
+			"V:|[selector]|",
+		]
+
+		self.fontSettingsTab.profiles.addAutoPosSizeRules(profiles_rules, self.metrics)
 
 		self.font_settings_groups = {}
 		self.font_settings_elements = set()
@@ -141,9 +213,15 @@ class HTLSManager(GeneralPlugin):
 		# add a button to import a file
 		self.fontSettingsTab.importButton = Button("auto", "Import config file...", callback=self.import_config_file)
 
+		# add a button to save the current settings as a profile
+		self.fontSettingsTab.saveProfileButton = Button("auto", "Save profile...", callback=self.save_profile)
+
 		font_tab_rules = [
 			"H:|-margin-[title]-margin-|",
-			"H:[importButton]-margin-|",
+			"H:[saveProfileButton]-margin-[importButton]-margin-|",
+			"H:[profiles]-margin-|",
+			"V:|-margin-[profiles]",
+			"V:[saveProfileButton]-margin-|",
 		]
 
 		# for each category group, add a rule to the font_tab_rules list
@@ -304,7 +382,7 @@ class HTLSManager(GeneralPlugin):
 		for category in self.categories:
 			if getattr(self.fontSettingsTab, category).addButton == sender:
 				self.font_settings[category][setting_id] = {
-					"subcategory": 0,
+					"subcategory": "Any",
 					"case": 0,
 					"value": 1,
 					"referenceGlyph": "",
@@ -526,67 +604,41 @@ class HTLSManager(GeneralPlugin):
 		self.areaSettings.reset_slider_position(value)
 
 	@objc.python_method
+	def load_profile(self, sender):
+		if sender.getItem() in self.user_profiles:
+			self.font_settings = self.user_profiles[sender.getItem()]
+
+	@objc.python_method
+	def save_profile(self, sender):
+		proposed_name = "New profile"
+		index = 2
+		if proposed_name in self.user_profiles:
+			while True:
+				proposed_name = "New profile %s" % index
+				if proposed_name not in self.user_profiles:
+					break
+				index += 1
+
+		profile_name = AskString("Profile name:", proposed_name, "Save HTLS profile")
+
+		if profile_name and len(profile_name) > 0:
+			if profile_name in self.user_profiles:
+				if not dialogs.askYesNo(messageText="Overwrite profile?",
+				                        informativeText="Profile '%s' already exists." % profile_name):
+					return
+				else:
+					self.user_profiles[profile_name] = self.font_settings
+
+	@objc.python_method
 	def import_config_file(self, sender):
 
-		interpreter_dict = {
-			"subcategory": {
-				"*": 0,
-				"Ligature": 1,
-				"Superscript": 2,
-				"Decimal Digit": 3,
-				"Fraction": 4,
-				"Small": 5,
-				"Space": 6,
-				"Nonspacing": 7,
-				"Dash": 8,
-				"Parenthesis": 9,
-				"Quote": 10,
-				"Currency": 11,
-				"Emoji": 12,
-				"Math": 13,
-				"Arrow": 14,
-				"Geometry": 15,
-				"Spacing": 16,
-				"Modifier": 17,
-				"Other": 0
-			},
-			"case": {
-				"*": 0,
-				"upper": 1,
-				"lower": 2,
-				"smallCaps": 3,
-				"minor": 4,
-				"other": 5
-			}
-
-		}
-
 		current_path = self.font.filepath
-		config_path = GetOpenFile(message="Import autospace.py file", filetypes=["py"], path=current_path)
-		if config_path is None:
+		config_file_path = GetOpenFile(message="Import autospace.py file", filetypes=["py"], path=current_path)
+		if config_file_path is None:
 			return
 
-		self.imported_config = {category: {} for category in self.categories}
-
-		try:
-			with open(config_path) as config_file:
-				for line in config_file:
-					if line.startswith("#") or len(line) < 12:
-						continue
-					key = str(uuid.uuid4()).replace("-", "")
-					category = line.split(",")[1]
-					self.imported_config[category][key] = {}
-					self.imported_config[category][key]["subcategory"] = interpreter_dict[
-						"subcategory"][line.split(",")[2]]
-					self.imported_config[category][key]["case"] = interpreter_dict["case"][line.split(",")[3]]
-					self.imported_config[category][key]["value"] = line.split(",")[4]
-					self.imported_config[category][key]["referenceGlyph"] = line.split(",")[5].replace("*", "")
-					self.imported_config[category][key]["filter"] = line.split(",")[6].replace("*", "")
-
-			self.font.userData["com.eweracs.HTLSManager.fontSettings"] = self.imported_config
-
-		except Exception as e:
-			print(e)
+		self.font.userData["com.eweracs.HTLSManager.fontSettings"] = convert_config_to_dict(
+			config_file_path, [glyph.name for glyph in self.font.glyphs])
 
 	@objc.python_method
 	def load_preferences(self):
@@ -597,15 +649,15 @@ class HTLSManager(GeneralPlugin):
 		try:
 			self.leftGlyphView.set_glyph(Glyphs.defaults["com.eweracs.HTLSManager.leftGlyph"])
 			self.rightGlyphView.set_glyph(Glyphs.defaults["com.eweracs.HTLSManager.rightGlyph"])
-		except Exception as e:
-			import traceback
-			traceback.print_exc()
+		except:
+			pass
 
 	@objc.python_method
 	def write_preferences(self):
 		Glyphs.defaults["com.eweracs.HTLSManager.tab"] = self.w.tabs.get()
 		Glyphs.defaults["com.eweracs.HTLSManager.leftGlyph"] = self.leftGlyphView.glyph_name
 		Glyphs.defaults["com.eweracs.HTLSManager.rightGlyph"] = self.rightGlyphView.glyph_name
+		Glyphs.defaults["com.eweracs.HTLSManager.userProfiles"] = self.user_profiles
 
 	@objc.python_method
 	def close(self, sender):
