@@ -636,6 +636,7 @@ class HTLSManager(GeneralPlugin):
 			new_settings = self.user_profiles[sender.getItem()]
 			self.rebuild_font_settings(new_settings)
 			self.font_settings = new_settings
+			self.write_font_settings()
 
 	@objc.python_method
 	def save_profile(self, sender):
@@ -669,9 +670,8 @@ class HTLSManager(GeneralPlugin):
 		new_settings = convert_config_to_dict(config_file_path, [glyph.name for glyph in self.font.glyphs])
 
 		self.rebuild_font_settings(new_settings)
-
-		self.font.userData["com.eweracs.HTLSManager.fontSettings"] = new_settings
 		self.font_settings = new_settings
+		self.write_font_settings()
 
 	@objc.python_method
 	def load_preferences(self):
