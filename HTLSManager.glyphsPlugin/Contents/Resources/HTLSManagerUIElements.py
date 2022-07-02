@@ -131,7 +131,8 @@ class HTLSParameterSlider:
 
 
 class HTLSFontSettingGroup:
-	def __init__(self, parent, category, setting):
+	def __init__(self, parent, font_settings, category, setting):
+		self.font_settings = font_settings
 		self.parent = parent
 		self.category = category
 		self.setting = setting
@@ -141,9 +142,9 @@ class HTLSFontSettingGroup:
 		# for the value, a textfield for the reference glyph, a textfield for the filter
 		# the group has a button to remove the settin
 		# if the setting is empty, skip it
-		if len(parent.font_settings[self.category][self.setting]) == 0:
+		if len(self.font_settings[self.category][self.setting]) == 0:
 			return
-		self.current_setting = parent.font_settings[self.category][self.setting]
+		self.current_setting = self.font_settings[self.category][self.setting]
 		self.setting_group = Group("auto")
 		self.setting_group.subcategory = PopUpButton("auto", self.parent.sub_categories,
 		                                             callback=self.parent.update_font_setting)
@@ -161,7 +162,7 @@ class HTLSFontSettingGroup:
 		                                     text=self.current_setting["filter"],
 		                                     callback=self.parent.update_font_setting)
 		self.setting_group.removeButton = Button("auto", "Remove rule",
-		                                         callback=self.parent.remove_font_setting)
+		                                         callback=self.parent.remove_font_setting_callback)
 
 		self.setting_group.subcategory.setItem(self.current_setting["subcategory"])
 		self.setting_group.case.set(self.current_setting["case"])
@@ -193,14 +194,14 @@ class HTLSFontSettingGroup:
 
 
 class HTLSMasterSettingGroup:
-	def __init__(self, parent, category, setting):
-		# if the setting is empty, skip it
+	def __init__(self, parent, font_settings, category, setting):
+		self.font_settings = font_settings
 		self.parent = parent
 		self.category = category
 		self.setting = setting
-		if len(self.parent.font_settings[self.category][self.setting]) == 0:
+		if len(self.font_settings[self.category][self.setting]) == 0:
 			return
-		self.current_setting = self.parent.font_settings[self.category][self.setting]
+		self.current_setting = self.font_settings[self.category][self.setting]
 		self.setting_group = Group("auto")
 		self.setting_group.subcategory = TextBox("auto", self.current_setting["subcategory"])
 		self.setting_group.case = TextBox("auto", self.parent.cases[self.current_setting["case"]])

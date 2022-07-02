@@ -12,7 +12,7 @@ from HTLSConfigConverter import *
 
 
 # TODO: Sync rules/parameters from master
-# TODO: Custom profiles for font settings: resfresh view on change
+# TODO: make rebuilding of UI faster
 # TODO: Write autospace.py file
 
 
@@ -69,7 +69,7 @@ class HTLSManager(GeneralPlugin):
 		self.cases = ["Any", "Uppercase", "Lowercase", "Smallcaps", "Minor", "Other"]
 
 		# dictionary of all font settings with key: category
-		# for every category, dictionary with keys: subcategory, case, value, reference glyph, filter
+		# for every category, dictionary with keys: subcategory, case, value, referenceGlyph, filter
 		if self.font.userData["com.eweracs.HTLSManager.fontSettings"]:
 			self.font_settings = dict(self.font.userData["com.eweracs.HTLSManager.fontSettings"])
 		else:
@@ -92,21 +92,21 @@ class HTLSManager(GeneralPlugin):
 					"subcategory": "Any",
 					"case": 1,
 					"value": 1.25,
-					"reference glyph": "H",
+					"referenceGlyph": "H",
 					"filter": ""
 				},
 				str(uuid.uuid4()).replace("-", ""): {
 					"subcategory": "Any",
 					"case": 2,
 					"value": 1,
-					"reference glyph": "x",
+					"referenceGlyph": "x",
 					"filter": ""
 				},
 				str(uuid.uuid4()).replace("-", ""): {
 					"subcategory": "Any",
 					"case": 3,
 					"value": 1.2,
-					"reference glyph": "h.sc",
+					"referenceGlyph": "h.sc",
 					"filter": ""
 				}
 			},
@@ -115,21 +115,21 @@ class HTLSManager(GeneralPlugin):
 					"subcategory": "Decimal Digit",
 					"case": 1,
 					"value": 1.25,
-					"reference glyph": "H",
+					"referenceGlyph": "H",
 					"filter": ""
 				},
 				str(uuid.uuid4()).replace("-", ""): {
 					"subcategory": "Decimal Digit",
 					"case": 2,
 					"value": 1.25,
-					"reference glyph": "x",
+					"referenceGlyph": "x",
 					"filter": ""
 				},
 				str(uuid.uuid4()).replace("-", ""): {
 					"subcategory": "Decimal Digit",
 					"case": 4,
 					"value": 0.8,
-					"reference glyph": "one.dnom",
+					"referenceGlyph": "one.dnom",
 					"filter": ".dnom"
 				}
 			},
@@ -187,11 +187,15 @@ class HTLSManager(GeneralPlugin):
 			category_group = Group("auto")
 			category_group.title = TextBox("auto", category)
 			# add a button to add a new setting for the category
-			category_group.addButton = Button("auto", "Add rule", callback=self.add_font_setting)
+			category_group.addButton = Button("auto", "Add rule", callback=self.add_font_setting_callback)
 
 			stack_views = []
 			for setting in self.font_settings[category]:
-				stack_views.append(dict(view=HTLSFontSettingGroup(self, category, setting).setting_group))
+				stack_views.append(dict(view=HTLSFontSettingGroup(self,
+				                                                  self.font_settings,
+				                                                  category,
+				                                                  setting
+				                                                  ).setting_group))
 
 			category_group.stackView = VerticalStackView("auto",
 			                                             views=stack_views,
@@ -255,7 +259,11 @@ class HTLSManager(GeneralPlugin):
 
 			stack_views = []
 			for setting in self.font_settings[category]:
-				stack_views.append(dict(view=HTLSMasterSettingGroup(self, category, setting).setting_group))
+				stack_views.append(dict(view=HTLSMasterSettingGroup(self,
+				                                                    self.font_settings,
+				                                                    category,
+				                                                    setting).setting_group)
+				                   )
 
 			category_group.stackView = VerticalStackView("auto",
 			                                             views=stack_views,
@@ -377,52 +385,58 @@ class HTLSManager(GeneralPlugin):
 		Glyphs.addCallback(self.ui_update, UPDATEINTERFACE)
 
 	@objc.python_method
-	def add_font_setting(self, sender):
+	def add_font_setting_callback(self, sender):
 		setting_id = str(uuid.uuid4()).replace("-", "")
 		for category in self.categories:
 			if getattr(self.fontSettingsTab, category).addButton == sender:
-				self.font_settings[category][setting_id] = {
-					"subcategory": "Any",
-					"case": 0,
-					"value": 1,
-					"referenceGlyph": "",
-					"filter": ""
-				}
+				self.add_font_setting(category, setting_id)
 				break
+
+	@objc.python_method
+	def add_font_setting(self, category, setting_id, font_settings=None):
+
+		if font_settings:
+			self.font_settings = font_settings[category][setting_id]
+		else:
+			self.font_settings[category][setting_id] = {
+				"subcategory": "Any",
+				"case": 0,
+				"value": 1,
+				"referenceGlyph": "",
+				"filter": ""
+			}
 
 		# find the stack view for the category and add a font setting in the font view, and a master setting in the
 		# master view
-		for category in self.categories:
-			if getattr(self.fontSettingsTab, category).addButton == sender:
-				getattr(self.fontSettingsTab, category).stackView.appendView(
-					HTLSFontSettingGroup(self, category, setting_id).setting_group
-				)
-				getattr(self.masterSettingsTab, category).stackView.appendView(
-					HTLSMasterSettingGroup(self, category, setting_id).setting_group
-				)
-				break
+		getattr(self.fontSettingsTab, category).stackView.appendView(
+			HTLSFontSettingGroup(self, font_settings, category, setting_id).setting_group
+		)
+		getattr(self.masterSettingsTab, category).stackView.appendView(
+			HTLSMasterSettingGroup(self, font_settings, category, setting_id).setting_group
+		)
 
 		self.w.resize(632, 1)
 
 		self.write_font_settings()
 
 	@objc.python_method
-	def remove_font_setting(self, sender):
-		# remove the view that the remove button belongs to from the stack view in the font settings and master
-		# settings tab
+	def remove_font_setting_callback(self, sender):
 		for category in self.categories:
 			for setting in self.font_settings[category]:
 				if self.font_settings_groups[setting].removeButton == sender:
-					getattr(self.fontSettingsTab, category).stackView.removeView(self.font_settings_groups[setting])
-					getattr(self.masterSettingsTab, category).stackView.removeView(self.master_settings_groups[setting])
+					self.remove_font_setting(category, setting)
 
-					if self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
-						if setting in self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
-							del self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"][setting]
-						if len(self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]) == 0:
-							del self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]
-					del self.font_settings[category][setting]
-					break
+	@objc.python_method
+	def remove_font_setting(self, category, setting):
+		getattr(self.fontSettingsTab, category).stackView.removeView(self.font_settings_groups[setting])
+		getattr(self.masterSettingsTab, category).stackView.removeView(self.master_settings_groups[setting])
+
+		if self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
+			if setting in self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
+				del self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"][setting]
+			if len(self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]) == 0:
+				del self.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]
+		del self.font_settings[category][setting]
 
 		self.w.resize(632, 1)
 
@@ -437,10 +451,10 @@ class HTLSManager(GeneralPlugin):
 
 						self.font_settings[category][setting][key] = sender.get()
 
-						# if the sender is the reference glyph, check if the glyph exists.
+						# if the sender is the referenceGlyph, check if the glyph exists.
 						if key == "referenceGlyph":
 							if sender.get() not in self.font.glyphs and sender.get() is not "":
-								Message(title="Error",
+								Message(title="Glyph not found",
 								        message="The glyph %s does not exist in the font." % sender.get())
 								sender.set(self.font.glyphs[0].name)
 							self.font_settings[category][setting][key] = sender.get()
@@ -467,6 +481,16 @@ class HTLSManager(GeneralPlugin):
 						break
 
 		self.write_font_settings()
+
+	@objc.python_method
+	def rebuild_font_settings(self, new_settings):
+		for category in self.categories:
+			for setting in self.font_settings[category]:
+				self.remove_font_setting(category, setting)
+
+		for category in self.categories:
+			for setting_id in new_settings[category]:
+				self.add_font_setting(category, setting_id, new_settings)
 
 	@objc.python_method
 	def update_master_setting(self, sender):
@@ -609,7 +633,9 @@ class HTLSManager(GeneralPlugin):
 	@objc.python_method
 	def load_profile(self, sender):
 		if sender.getItem() in self.user_profiles:
-			self.font_settings = self.user_profiles[sender.getItem()]
+			new_settings = self.user_profiles[sender.getItem()]
+			self.rebuild_font_settings(new_settings)
+			self.font_settings = new_settings
 
 	@objc.python_method
 	def save_profile(self, sender):
@@ -640,8 +666,12 @@ class HTLSManager(GeneralPlugin):
 		if config_file_path is None:
 			return
 
-		self.font.userData["com.eweracs.HTLSManager.fontSettings"] = convert_config_to_dict(
-			config_file_path, [glyph.name for glyph in self.font.glyphs])
+		new_settings = convert_config_to_dict(config_file_path, [glyph.name for glyph in self.font.glyphs])
+
+		self.rebuild_font_settings(new_settings)
+
+		self.font.userData["com.eweracs.HTLSManager.fontSettings"] = new_settings
+		self.font_settings = new_settings
 
 	@objc.python_method
 	def load_preferences(self):
