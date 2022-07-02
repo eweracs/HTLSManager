@@ -533,13 +533,16 @@ class HTLSManager(GeneralPlugin):
 		                            1,
 		                            int(self.font.selectedFontMaster.customParameters["paramArea"]) * 2
 		                            )
-
 		self.depthSettings.ui_update(self.currentMasterID,
 		                             int(self.font.selectedFontMaster.customParameters["paramDepth"]),
 		                             1,
-		                             int(self.font.selectedFontMaster.customParameters["paramDepth"]) * 2
+		                             20
 		                             )
+
 		self.toggle_reset_parameters_button()
+
+		self.leftGlyphView.update_layer(self.currentMasterID)
+		self.rightGlyphView.update_layer(self.currentMasterID)
 
 	@objc.python_method
 	def switch_tabs(self, sender, tab_index=None):
