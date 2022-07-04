@@ -19,8 +19,22 @@ class HTLSGlyphView:
 		                                         [glyph.name for glyph in self.glyphs],
 		                                         callback=self.glyph_selector_callback)
 		self.view_group.glyphSelector.set(self.glyph_name)
-		self.view_group.leftSideBearing = TextBox("auto", self.parent.metricsDict[self.glyph_name][self.master_id][0])
-		self.view_group.rightSideBearing = TextBox("auto", self.parent.metricsDict[self.glyph_name][self.master_id][1])
+
+		self.view_group.currentLeftSideBearing = TextBox("auto",
+		                                                 self.glyphs[self.glyph_name].layers[self.master_id].LSB,
+		                                                 alignment="left"
+		                                                 )
+		self.view_group.currentRightSideBearing = TextBox("auto",
+		                                                  self.glyphs[self.glyph_name].layers[self.master_id].RSB,
+		                                                  alignment="right"
+		                                                  )
+
+		self.view_group.originalLeftSideBearing = TextBox(
+			"auto", "(%s)" % self.parent.metricsDict[self.glyph_name][self.master_id][0], alignment="left"
+		)
+		self.view_group.originalRightSideBearing = TextBox(
+			"auto", "(%s)" % self.parent.metricsDict[self.glyph_name][self.master_id][1], alignment="right"
+		)
 		self.view_group.padding1 = Group("auto")
 		self.view_group.padding2 = Group("auto")
 
@@ -28,10 +42,13 @@ class HTLSGlyphView:
 		view_group_rules = [
 			"H:|-margin-[glyphView]-margin-|",
 			"H:|-margin-[glyphSelector]-margin-|",
-			"H:|-20-[leftSideBearing]-margin-[rightSideBearing]-20-|",
+			"H:|-20-[originalLeftSideBearing]-margin-[originalRightSideBearing]-20-|",
+			"H:|-20-[currentLeftSideBearing]-margin-[currentRightSideBearing]-20-|",
 			"V:|-margin-[glyphView]-margin-[glyphSelector]-margin-|",
-			"V:|-[padding1]-[leftSideBearing]-[padding2(==padding1)]-[glyphSelector]",
-			"V:|-[padding1]-[rightSideBearing]-[padding2(==padding1)]-[glyphSelector]",
+			"V:|-margin-[originalLeftSideBearing]",
+			"V:|-margin-[originalRightSideBearing]",
+			"V:|-[padding1]-[currentLeftSideBearing]-[padding2(==padding1)]-[glyphSelector]",
+			"V:|-[padding1]-[currentRightSideBearing]-[padding2(==padding1)]-[glyphSelector]",
 		]
 
 		self.view_group.addAutoPosSizeRules(view_group_rules, self.parent.metrics)
@@ -51,8 +68,18 @@ class HTLSGlyphView:
 	def update_layer(self, master_id):
 		self.master_id = master_id
 		self.view_group.glyphView.layer = self.glyphs[self.glyph_name].layers[self.master_id]
-		self.view_group.leftSideBearing.set(self.parent.metricsDict[self.glyph_name][self.master_id][0])
-		self.view_group.rightSideBearing.set(self.parent.metricsDict[self.glyph_name][self.master_id][1])
+		self.view_group.originalLeftSideBearing.set(
+			"(%s)" % self.parent.metricsDict[self.glyph_name][self.master_id][0]
+		)
+		self.view_group.originalRightSideBearing.set(
+			"(%s)" % self.parent.metricsDict[self.glyph_name][self.master_id][1]
+		)
+
+	def update_sidebearings(self, master_id):
+		self.master_id = master_id
+		self.view_group.currentLeftSideBearing.set(self.glyphs[self.glyph_name].layers[self.master_id].LSB)
+		self.view_group.currentRightSideBearing.set(self.glyphs[self.glyph_name].layers[self.master_id].RSB)
+
 
 
 class HTLSParameterSlider:
@@ -215,10 +242,10 @@ class HTLSMasterSettingGroup:
 		self.setting_group.resetButton.enable(False)
 
 		# check if a value is stored in the mastr's user data for the current setting, if yes, use it
-		if self.parent.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
-			if self.setting in self.parent.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]:
-				self.setting_group.value.set(
-					self.parent.font.selectedFontMaster.userData["HTLSManagerMasterSettings"][self.setting])
+		master_settings = self.parent.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]
+		if master_settings:
+			if self.setting in master_settings:
+				self.setting_group.value.set(str(master_settings[self.setting]).replace(",", "."))
 				self.setting_group.resetButton.enable(True)
 
 		group_rules = [

@@ -12,6 +12,7 @@ from HTLSConfigConverter import *
 
 
 # TODO: Sync rules/parameters from master
+# TODO: Set master to interpolate from masters
 # TODO: make rebuilding of UI faster
 # TODO: Write autospace.py file
 
@@ -88,21 +89,21 @@ class HTLSManager(GeneralPlugin):
 
 		self.default_profile = {
 			"Letter": {
-				str(uuid.uuid4()).replace("-", ""): {
+				self.create_setting_id(): {
 					"subcategory": "Any",
 					"case": 1,
 					"value": 1.25,
 					"referenceGlyph": "H",
 					"filter": ""
 				},
-				str(uuid.uuid4()).replace("-", ""): {
+				self.create_setting_id(): {
 					"subcategory": "Any",
 					"case": 2,
 					"value": 1,
 					"referenceGlyph": "x",
 					"filter": ""
 				},
-				str(uuid.uuid4()).replace("-", ""): {
+				self.create_setting_id(): {
 					"subcategory": "Any",
 					"case": 3,
 					"value": 1.2,
@@ -111,21 +112,21 @@ class HTLSManager(GeneralPlugin):
 				}
 			},
 			"Number": {
-				str(uuid.uuid4()).replace("-", ""): {
+				self.create_setting_id(): {
 					"subcategory": "Decimal Digit",
 					"case": 1,
 					"value": 1.25,
 					"referenceGlyph": "H",
 					"filter": ""
 				},
-				str(uuid.uuid4()).replace("-", ""): {
+				self.create_setting_id(): {
 					"subcategory": "Decimal Digit",
 					"case": 2,
 					"value": 1.25,
 					"referenceGlyph": "x",
 					"filter": ""
 				},
-				str(uuid.uuid4()).replace("-", ""): {
+				self.create_setting_id(): {
 					"subcategory": "Decimal Digit",
 					"case": 4,
 					"value": 0.8,
@@ -386,7 +387,7 @@ class HTLSManager(GeneralPlugin):
 
 	@objc.python_method
 	def add_font_setting_callback(self, sender):
-		setting_id = str(uuid.uuid4()).replace("-", "")
+		setting_id = self.create_setting_id()
 		for category in self.categories:
 			if getattr(self.fontSettingsTab, category).addButton == sender:
 				self.add_font_setting(category, setting_id)
@@ -615,6 +616,11 @@ class HTLSManager(GeneralPlugin):
 						# disable the reset button
 						self.master_settings_groups[setting].resetButton.enable(False)
 
+		# if the visualiser tab is open, update the LSB and RSB on the visualiser
+		if self.w.tabs.get() == 2:
+			self.leftGlyphView.update_sidebearings(self.currentMasterID)
+			self.rightGlyphView.update_sidebearings(self.currentMasterID)
+
 	@objc.python_method
 	def toggle_reset_parameters_button(self):
 		# check whether the area and depth settings match the saved settings, only if not, enable the reset button
@@ -634,9 +640,11 @@ class HTLSManager(GeneralPlugin):
 	def load_profile(self, sender):
 		if sender.getItem() in self.user_profiles:
 			new_settings = self.user_profiles[sender.getItem()]
+			print(type(new_settings))
 			self.rebuild_font_settings(new_settings)
 			self.font_settings = new_settings
 			self.write_font_settings()
+			print(type(self.font_settings))
 
 	@objc.python_method
 	def save_profile(self, sender):
@@ -672,6 +680,10 @@ class HTLSManager(GeneralPlugin):
 		self.rebuild_font_settings(new_settings)
 		self.font_settings = new_settings
 		self.write_font_settings()
+
+	@objc.python_method
+	def create_setting_id(self):
+		return str(uuid.uuid4()).replace("-", "")
 
 	@objc.python_method
 	def load_preferences(self):
