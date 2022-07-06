@@ -13,7 +13,7 @@ case_dict = {
 categories = ["Letter", "Number", "Separator", "Punctuation", "Symbol", "Mark"]
 
 
-def convert_config_to_dict(config_file_path, glyphs):
+def convert_config_to_dict(config_file_path, glyphs, subcategories):
 	"""
 	Converts a config file to a dictionary.
 	"""
@@ -38,20 +38,25 @@ def convert_config_to_dict(config_file_path, glyphs):
 
 				reference_glyph = config_dict[category][key]["referenceGlyph"]
 				if len(reference_glyph) > 0 and reference_glyph not in glyphs:
-					print("Ignoring rule with missing reference glyph: %s" % config_dict[category][key][
-						"referenceGlyph"])
+					print(
+						"Ignoring rule with missing reference glyph: %s" % config_dict[category][key]["referenceGlyph"]
+					)
 					if reference_glyph not in missing_references:
 						missing_references.append(reference_glyph)
 					del config_dict[category][key]
 					ignored_rules += 1
 
-		if len(missing_references) > 0:
-			notification_message = "%s rules ignored. The following reference glyphs were not found " \
-			                       "in the font: %s" % (ignored_rules, ", ".join(missing_references))
-		else:
-			notification_message = "No invalid rules detected."
+				elif config_dict[category][key]["subcategory"] not in subcategories[category]:
+					print("Ignoring rule with missing subcategory: %s" % config_dict[category][key]["subcategory"])
+					del config_dict[category][key]
+					ignored_rules += 1
 
-		Glyphs.showNotification("Import successful", notification_message)
+		if len(missing_references) > 0:
+			notification_message = "%s rules ignored" % ignored_rules
+		else:
+			notification_message = "No invalid rules found."
+
+		Glyphs.showNotification("Import successful", "%s Detailed report in macro window." % notification_message)
 
 	except Exception as e:
 		print(e)
@@ -66,7 +71,7 @@ def convert_dict_to_config(config_dict, config_file_path):
 	Converts a dictionary to a config file.
 	"""
 
-	inverted_case_dict = {index: value for value, index in interpreter_dict}
+	inverted_case_dict = {index: value for value, index in case_dict}
 
 	try:
 		with open(config_file_path, "w") as config_file:
