@@ -115,7 +115,7 @@ def zone_margins(l_margins, r_margins, min_y, max_y):
 
 class HTLSEngine:
 
-	def __init__(self, config, layer, factor=1):
+	def __init__(self, config, layer):
 		self.font = layer.parent.parent
 		self.config = config
 		self.layer = layer
@@ -139,12 +139,11 @@ class HTLSEngine:
 		self.xHeight = int(layer.master.xHeight)
 		self.angle = layer.italicAngle
 		self.upm = int(layer.master.font.upm)
-		self.factor = factor
+		self.factor = 1
 
 		self.rule = self.find_exception()
 		if self.rule:
 			self.factor = float(self.rule["value"])
-			print(type(self.factor))
 			reference_glyph = self.font.glyphs[self.rule["referenceGlyph"]]
 			self.reference_layer = reference_glyph.layers[self.layer.associatedMasterId]
 
@@ -276,7 +275,7 @@ class HTLSEngine:
 			import traceback
 			print(traceback.format_exc())
 
-	def space_layer(self):
+	def current_layer_sidebearings(self):
 		if not self.layer.name \
 				or len(self.layer.components) + len(self.layer.paths) == 0 \
 				or self.layer.hasAlignedWidth() \
