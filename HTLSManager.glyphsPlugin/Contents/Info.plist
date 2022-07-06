@@ -17,9 +17,9 @@
 	<key>CFBundleVersion</key>
 	<string>1</string> <!-- 123 -->
 	<key>UpdateFeedURL</key>
-	<string>https://github.com/eweracs/ShowHTLetterspacerAreas/blob/main/ShowHTLSPolygons.glyphsReporter/Contents/Info.plist</string>
+	<string>https://github.com/eweracs/HTLSManager/blob/master/HTLSManager.glyphsPlugin/Contents/Info.plist</string>
 	<key>productPageURL</key>
-	<string>https://github.com/eweracs/ShowHTLetterspacerAreas</string>
+	<string>https://github.com/eweracs/HTLSManager</string>
 	<key>productReleaseNotes</key>
 	<string>Initial Release</string>
 	<key>NSHumanReadableCopyright</key>
