@@ -1,5 +1,6 @@
 from vanilla import *
 from GlyphsApp.UI import GlyphView
+from GlyphsApp import Message
 from AppKit import NSColor
 
 
@@ -133,9 +134,11 @@ class HTLSParameterSlider:
 			self.parent.master_parameters_sliders[self.parameter].set(int(sender.get()))
 
 		self.parent.set_master_parameter(self.master_id, self.parameter, int(sender.get()))
+		self.parent.apply_parameters_to_selection()
 		self.parent.toggle_reset_parameters_button()
 		self.parent.reset_area_slider_position(sender.get())
 		self.current_value = float(sender.get())
+
 
 	def reset_slider_position(self, value):
 		if value == self.current_value:  # check whether slider was released
