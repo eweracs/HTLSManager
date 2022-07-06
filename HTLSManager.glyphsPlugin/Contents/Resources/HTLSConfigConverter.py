@@ -52,7 +52,7 @@ def convert_config_to_dict(config_file_path, glyphs, subcategories):
 					ignored_rules += 1
 
 		if len(missing_references) > 0:
-			notification_message = "%s rules ignored" % ignored_rules
+			notification_message = "%s rules ignored." % ignored_rules
 		else:
 			notification_message = "No invalid rules found."
 
