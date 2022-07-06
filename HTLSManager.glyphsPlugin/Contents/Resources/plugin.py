@@ -9,7 +9,7 @@ from vanilla import dialogs
 
 from HTLSManagerUIElements import *
 from HTLSConfigConverter import *
-from HTLSEngine import *
+from HTLSLibrary import *
 
 
 # TODO: Sync rules/parameters from master
@@ -17,7 +17,6 @@ from HTLSEngine import *
 # TODO: make rebuilding of UI faster
 # TODO: Write autospace.py file
 # TODO: display category, factor for glyph view
-# TODO: only display subcategories if part of category
 
 
 class HTLSManager(GeneralPlugin):
@@ -461,7 +460,7 @@ class HTLSManager(GeneralPlugin):
 
 		if self.font.selectedFontMaster.userData["HTLSManagerMasterRules"]:
 			if rule_id in self.font.selectedFontMaster.userData["HTLSManagerMasterRules"]:
-				del self.font.selectedFontMaster.userData["HTLSManagerMasterRules"][rule]
+				del self.font.selectedFontMaster.userData["HTLSManagerMasterRules"][rule_id]
 			if len(self.font.selectedFontMaster.userData["HTLSManagerMasterRules"]) == 0:
 				del self.font.selectedFontMaster.userData["HTLSManagerMasterRules"]
 		del self.font_rules[category][rule_id]
@@ -669,8 +668,7 @@ class HTLSManager(GeneralPlugin):
 		if self.live_preview and not self.font.currentTab:
 			self.font.newTab(self.leftGlyphView.glyph_name + self.rightGlyphView.glyph_name)
 
-		engine = HTLetterspacerLib()
-		print(engine)
+		print(HTLSEngine(self.font_rules, self.font.selectedLayers[0]).space_layer())
 
 	@objc.python_method
 	def load_profile(self, sender):
