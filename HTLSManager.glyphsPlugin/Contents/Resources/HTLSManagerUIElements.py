@@ -182,9 +182,6 @@ class HTLSFontRuleGroup:
 		                                    continuous=False,
 		                                    text=self.current_rule["value"],
 		                                    callback=self.parent.update_font_rule)
-		self.rule_group.referenceGlyph = ComboBox("auto",
-		                                             [glyph.name for glyph in self.parent.font.glyphs],
-		                                             callback=self.parent.update_font_rule)
 		self.rule_group.filter = EditText("auto",
 		                                     continuous=False,
 		                                     placeholder="None",
@@ -192,14 +189,17 @@ class HTLSFontRuleGroup:
 		                                     callback=self.parent.update_font_rule)
 		self.rule_group.removeButton = Button("auto", "Remove rule",
 		                                         callback=self.parent.remove_font_rule_callback)
+		self.rule_group.referenceGlyph = ComboBox("auto",
+		                                          [glyph.name for glyph in self.parent.font.glyphs],
+		                                          callback=self.parent.update_font_rule)
 
 		self.rule_group.subcategory.setItem(self.current_rule["subcategory"])
 		self.rule_group.case.set(self.current_rule["case"])
 		self.rule_group.referenceGlyph.set(self.current_rule["referenceGlyph"])
 
 		group_rules = [
-			"H:|-margin-[subcategory(116)]-margin-[case]-margin-[referenceGlyph(>=90)]-margin-"
-			"[filter(==value)]-margin-[value(60)]-margin-[removeButton]|",
+			"H:|-margin-[subcategory(116)]-margin-[case]-margin-[filter(==value)]-margin-[referenceGlyph(>=90)]-margin-"
+			"[value(60)]-margin-[removeButton]|",
 			"V:|[value(22)]|",
 			"V:|[subcategory(==value)]|",
 			"V:|[case(==value)]|",
