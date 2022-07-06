@@ -17,6 +17,7 @@ from HTLSLibrary import *
 # TODO: make rebuilding of UI faster
 # TODO: Write autospace.py file
 # TODO: display category, factor for glyph view
+# TODO: detect conflicting rules
 
 
 class HTLSManager(GeneralPlugin):
@@ -341,8 +342,8 @@ class HTLSManager(GeneralPlugin):
 			"paramArea",
 			self.font.selectedFontMaster.id,
 			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"]),
-			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"] - 100),
-			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"] + 100)
+			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"]) - 100,
+			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"]) + 100
 		)
 
 		self.depthSettings = HTLSParameterSlider(
@@ -583,8 +584,8 @@ class HTLSManager(GeneralPlugin):
 	def update_parameter_ui(self):
 		self.areaSettings.ui_update(self.currentMasterID,
 		                            int(self.font.selectedFontMaster.customParameters["paramArea"]),
-		                            1,
-		                            int(self.font.selectedFontMaster.customParameters["paramArea"]) * 2
+		                            int(self.font.selectedFontMaster.customParameters["paramArea"]) - 100,
+		                            int(self.font.selectedFontMaster.customParameters["paramArea"]) + 100
 		                            )
 		self.depthSettings.ui_update(self.currentMasterID,
 		                             int(self.font.selectedFontMaster.customParameters["paramDepth"]),
@@ -674,16 +675,19 @@ class HTLSManager(GeneralPlugin):
 		if self.live_preview:
 			if not self.font.currentTab:
 				self.font.newTab(self.leftGlyphView.glyph_name + self.rightGlyphView.glyph_name)
-			layers = self.font.currentTab.layers
+			layers = set(self.font.currentTab.layers)
 		else:
 			layers = [self.font.glyphs[self.leftGlyphView.glyph_name].layers[self.currentMasterID],
 			          self.font.glyphs[self.rightGlyphView.glyph_name].layers[self.currentMasterID]]
 
 		for layer in layers:
-			layer_lsb, layer_rsb = HTLSEngine(self.font_rules, layer).current_layer_sidebearings()
+			layer_lsb, layer_rsb = HTLSEngine(self.font_rules, layer).current_layer_sidebearings() or [None, None]
+			if not layer_lsb or not layer_rsb:
+				continue
 			if self.live_preview:
 				layer.LSB = layer_lsb
 				layer.RSB = layer_rsb
+				self.font.currentTab.forceRedraw()
 			if layer.parent.name == self.leftGlyphView.glyph_name:
 				self.parametersTab.leftGlyphView.currentLeftSideBearing.set(layer_lsb)
 				self.parametersTab.leftGlyphView.currentRightSideBearing.set(layer_rsb)

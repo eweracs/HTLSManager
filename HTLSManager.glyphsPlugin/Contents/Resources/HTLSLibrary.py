@@ -118,7 +118,7 @@ class HTLSEngine:
 	def __init__(self, config, layer):
 		self.font = layer.parent.parent
 		self.master = layer.master
-		self.master_settings = self.master.userData["HTLSManagerMasterRules"]
+		self.master_rules = self.master.userData["HTLSManagerMasterRules"]
 		self.config = config
 		self.layer = layer
 		self.reference_layer = layer
@@ -162,8 +162,8 @@ class HTLSEngine:
 				if case == self.config[category][rule_id]["case"] or self.config[category][rule_id]["case"] == "Any":
 					if self.config[category][rule_id]["filter"] in name:
 						rule = self.config[category][rule_id]
-						if self.master_settings and rule_id in self.master_settings:
-							rule["value"] = self.master_settings[rule_id]
+						if self.master_rules and rule_id in self.master_rules:
+							rule["value"] = self.master_rules[rule_id]
 
 
 		return rule
