@@ -54,7 +54,8 @@ class HTLSManager(GeneralPlugin):
 
 		self.metricsDict = {
 			glyph.name: {
-				layer.associatedMasterId: [layer.LSB, layer.RSB] for layer in glyph.layers if layer.isMasterLayer
+				layer.associatedMasterId: [int(layer.LSB), int(layer.RSB)] for layer in glyph.layers if
+				layer.isMasterLayer
 			} for glyph in self.font.glyphs
 		}
 
@@ -340,8 +341,8 @@ class HTLSManager(GeneralPlugin):
 			"paramArea",
 			self.font.selectedFontMaster.id,
 			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"]),
-			1,
-			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"] * 2)
+			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"] - 100),
+			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"] + 100)
 		)
 
 		self.depthSettings = HTLSParameterSlider(
@@ -372,7 +373,7 @@ class HTLSManager(GeneralPlugin):
 		self.parametersTab.rightGlyphView = self.rightGlyphView.view_group
 
 		# add a checkbox at the botttom to toggle live preview in the current tab
-		self.parametersTab.livePreview = CheckBox("auto", "Live preview", callback=self.toggle_live_preview)
+		self.parametersTab.livePreview = CheckBox("auto", "Live preview", value=True, callback=self.toggle_live_preview)
 
 		self.toggle_reset_parameters_button()
 
@@ -565,6 +566,7 @@ class HTLSManager(GeneralPlugin):
 			for parameter in self.parameters_dict[master_id]:
 				self.font.masters[master_id].customParameters[parameter] = self.parameters_dict[master_id][parameter]
 
+		self.apply_parameters_to_selection()
 		self.update_parameter_ui()
 
 	@objc.python_method
@@ -665,10 +667,29 @@ class HTLSManager(GeneralPlugin):
 	@objc.python_method
 	def toggle_live_preview(self, sender):
 		self.live_preview = sender.get()
-		if self.live_preview and not self.font.currentTab:
-			self.font.newTab(self.leftGlyphView.glyph_name + self.rightGlyphView.glyph_name)
 
-		print(HTLSEngine(self.font_rules, self.font.selectedLayers[0]).space_layer())
+	@objc.python_method
+	def apply_parameters_to_selection(self):
+		# if live preview is enables, run the HTLS engine for all glyphs in the current tab
+		if self.live_preview:
+			if not self.font.currentTab:
+				self.font.newTab(self.leftGlyphView.glyph_name + self.rightGlyphView.glyph_name)
+			layers = self.font.currentTab.layers
+		else:
+			layers = [self.font.glyphs[self.leftGlyphView.glyph_name].layers[self.currentMasterID],
+			          self.font.glyphs[self.rightGlyphView.glyph_name].layers[self.currentMasterID]]
+
+		for layer in layers:
+			layer_lsb, layer_rsb = HTLSEngine(self.font_rules, layer).current_layer_sidebearings()
+			if self.live_preview:
+				layer.LSB = layer_lsb
+				layer.RSB = layer_rsb
+			if layer.parent.name == self.leftGlyphView.glyph_name:
+				self.parametersTab.leftGlyphView.currentLeftSideBearing.set(layer_lsb)
+				self.parametersTab.leftGlyphView.currentRightSideBearing.set(layer_rsb)
+			if layer.parent.name == self.rightGlyphView.glyph_name:
+				self.parametersTab.rightGlyphView.currentLeftSideBearing.set(layer_lsb)
+				self.parametersTab.rightGlyphView.currentRightSideBearing.set(layer_rsb)
 
 	@objc.python_method
 	def load_profile(self, sender):
