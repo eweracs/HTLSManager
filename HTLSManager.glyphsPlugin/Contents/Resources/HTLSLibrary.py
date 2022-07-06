@@ -117,6 +117,8 @@ class HTLSEngine:
 
 	def __init__(self, config, layer):
 		self.font = layer.parent.parent
+		self.master = layer.master
+		self.master_settings = self.master.userData["HTLSManagerMasterRules"]
 		self.config = config
 		self.layer = layer
 		self.reference_layer = layer
@@ -132,13 +134,13 @@ class HTLSEngine:
 		self.width = None
 		self.LSB = None
 		self.RSB = None
-		self.paramArea = layer.master.customParameters["paramArea"] or 400
-		self.paramDepth = layer.master.customParameters["paramDepth"] or 12
-		self.paramOver = layer.master.customParameters["paramOver"] or 0
+		self.paramArea = self.master.customParameters["paramArea"] or 400
+		self.paramDepth = self.master.customParameters["paramDepth"] or 12
+		self.paramOver = self.master.customParameters["paramOver"] or 0
 		self.paramFreq = 5
-		self.xHeight = int(layer.master.xHeight)
+		self.xHeight = int(self.master.xHeight)
 		self.angle = layer.italicAngle
-		self.upm = int(layer.master.font.upm)
+		self.upm = int(self.master.font.upm)
 		self.factor = 1
 
 		self.rule = self.find_exception()
@@ -160,6 +162,9 @@ class HTLSEngine:
 				if case == self.config[category][rule_id]["case"] or self.config[category][rule_id]["case"] == "Any":
 					if self.config[category][rule_id]["filter"] in name:
 						rule = self.config[category][rule_id]
+						if self.master_settings and rule_id in self.master_settings:
+							rule["value"] = self.master_settings[rule_id]
+
 
 		return rule
 
