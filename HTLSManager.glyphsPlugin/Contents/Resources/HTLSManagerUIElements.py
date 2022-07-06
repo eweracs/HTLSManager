@@ -112,9 +112,9 @@ class HTLSParameterSlider:
 		# add rules to the slider group
 		slider_group_rules = [
 			"H:|-margin-[title(70)]-margin-[slider]-margin-[field(50)]-margin-|",
-			"V:|-margin-[slider]-margin-|",
-			"V:|-margin-[title]",
-			"V:|-margin-[field]",
+			"V:|[slider]-margin-|",
+			"V:|[title]",
+			"V:|[field]",
 		]
 
 		self.parent.master_parameters_sliders[self.parameter] = self.slider_group.slider
@@ -157,46 +157,48 @@ class HTLSParameterSlider:
 		                            )
 
 
-class HTLSFontSettingGroup:
-	def __init__(self, parent, font_settings, category, setting):
-		self.font_settings = font_settings
+class HTLSFontRuleGroup:
+	def __init__(self, parent, font_rules, category, rule):
+		self.font_rules = font_rules
 		self.parent = parent
 		self.category = category
-		self.setting = setting
+		self.rule = rule
 
-		# return a group for the category group, using the key from the setting to find the group
+		# return a group for the category group, using the key from the rule to find the group
 		# the group contains a title, a dropdown for the subcategory, a dropdown for the case, an editable text field
 		# for the value, a textfield for the reference glyph, a textfield for the filter
-		# the group has a button to remove the settin
-		# if the setting is empty, skip it
-		if len(self.font_settings[self.category][self.setting]) == 0:
+		# the group has a button to remove the setting
+		# if the rule is empty, skip it
+
+		if self.rule not in self.font_rules[self.category]:
 			return
-		self.current_setting = self.font_settings[self.category][self.setting]
-		self.setting_group = Group("auto")
-		self.setting_group.subcategory = PopUpButton("auto", self.parent.sub_categories,
-		                                             callback=self.parent.update_font_setting)
-		self.setting_group.case = PopUpButton("auto", self.parent.cases, callback=self.parent.update_font_setting)
-		self.setting_group.value = EditText("auto",
+
+		self.current_rule = self.font_rules[self.category][self.rule]
+		self.rule_group = Group("auto")
+		self.rule_group.subcategory = PopUpButton("auto", self.parent.sub_categories[self.category],
+		                                             callback=self.parent.update_font_rule)
+		self.rule_group.case = PopUpButton("auto", self.parent.cases, callback=self.parent.update_font_rule)
+		self.rule_group.value = EditText("auto",
 		                                    continuous=False,
-		                                    text=self.current_setting["value"],
-		                                    callback=self.parent.update_font_setting)
-		self.setting_group.referenceGlyph = ComboBox("auto",
+		                                    text=self.current_rule["value"],
+		                                    callback=self.parent.update_font_rule)
+		self.rule_group.referenceGlyph = ComboBox("auto",
 		                                             [glyph.name for glyph in self.parent.font.glyphs],
-		                                             callback=self.parent.update_font_setting)
-		self.setting_group.filter = EditText("auto",
+		                                             callback=self.parent.update_font_rule)
+		self.rule_group.filter = EditText("auto",
 		                                     continuous=False,
 		                                     placeholder="None",
-		                                     text=self.current_setting["filter"],
-		                                     callback=self.parent.update_font_setting)
-		self.setting_group.removeButton = Button("auto", "Remove rule",
-		                                         callback=self.parent.remove_font_setting_callback)
+		                                     text=self.current_rule["filter"],
+		                                     callback=self.parent.update_font_rule)
+		self.rule_group.removeButton = Button("auto", "Remove rule",
+		                                         callback=self.parent.remove_font_rule_callback)
 
-		self.setting_group.subcategory.setItem(self.current_setting["subcategory"])
-		self.setting_group.case.set(self.current_setting["case"])
-		self.setting_group.referenceGlyph.set(self.current_setting["referenceGlyph"])
+		self.rule_group.subcategory.setItem(self.current_rule["subcategory"])
+		self.rule_group.case.set(self.current_rule["case"])
+		self.rule_group.referenceGlyph.set(self.current_rule["referenceGlyph"])
 
 		group_rules = [
-			"H:|-margin-[subcategory]-margin-[case]-margin-[referenceGlyph(>=90)]-margin-"
+			"H:|-margin-[subcategory(116)]-margin-[case]-margin-[referenceGlyph(>=90)]-margin-"
 			"[filter(==value)]-margin-[value(60)]-margin-[removeButton]|",
 			"V:|[value(22)]|",
 			"V:|[subcategory(==value)]|",
@@ -206,47 +208,49 @@ class HTLSFontSettingGroup:
 			"V:|[removeButton(==value)]|",
 		]
 
-		self.setting_group.addAutoPosSizeRules(group_rules, self.parent.metrics)
+		self.rule_group.addAutoPosSizeRules(group_rules, self.parent.metrics)
 
 		# add all group elements to the elements set
-		self.parent.font_settings_elements.add(self.setting_group.subcategory)
-		self.parent.font_settings_elements.add(self.setting_group.case)
-		self.parent.font_settings_elements.add(self.setting_group.value)
-		self.parent.font_settings_elements.add(self.setting_group.referenceGlyph)
-		self.parent.font_settings_elements.add(self.setting_group.filter)
-		self.parent.font_settings_elements.add(self.setting_group.removeButton)
+		self.parent.font_rules_elements.add(self.rule_group.subcategory)
+		self.parent.font_rules_elements.add(self.rule_group.case)
+		self.parent.font_rules_elements.add(self.rule_group.value)
+		self.parent.font_rules_elements.add(self.rule_group.referenceGlyph)
+		self.parent.font_rules_elements.add(self.rule_group.filter)
+		self.parent.font_rules_elements.add(self.rule_group.removeButton)
 
-		# add the group to the setting group dictionary with ID
-		self.parent.font_settings_groups[self.setting] = self.setting_group
+		# add the group to the rule group dictionary with ID
+		self.parent.font_rules_groups[self.rule] = self.rule_group
 
 
-class HTLSMasterSettingGroup:
-	def __init__(self, parent, font_settings, category, setting):
-		self.font_settings = font_settings
+class HTLSMasterRuleGroup:
+	def __init__(self, parent, font_rules, category, rule):
+		self.font_rules = font_rules
 		self.parent = parent
 		self.category = category
-		self.setting = setting
-		if len(self.font_settings[self.category][self.setting]) == 0:
+		self.rule = rule
+
+		if len(self.font_rules[self.category][self.rule]) == 0:
 			return
-		self.current_setting = self.font_settings[self.category][self.setting]
-		self.setting_group = Group("auto")
-		self.setting_group.subcategory = TextBox("auto", self.current_setting["subcategory"])
-		self.setting_group.case = TextBox("auto", self.parent.cases[self.current_setting["case"]])
-		self.setting_group.filter = TextBox("auto", str(self.current_setting["filter"] or "Any"))
-		self.setting_group.value = EditText("auto",
+
+		self.current_rule = self.font_rules[self.category][self.rule]
+		self.rule_group = Group("auto")
+		self.rule_group.subcategory = TextBox("auto", self.current_rule["subcategory"])
+		self.rule_group.case = TextBox("auto", self.parent.cases[self.current_rule["case"]])
+		self.rule_group.filter = TextBox("auto", str(self.current_rule["filter"] or "Any"))
+		self.rule_group.value = EditText("auto",
 		                                    continuous=False,
 		                                    text="",
-		                                    placeholder=self.current_setting["value"],
-		                                    callback=self.parent.update_master_setting)
-		self.setting_group.resetButton = Button("auto", "Reset", callback=self.parent.reset_master_setting)
-		self.setting_group.resetButton.enable(False)
+		                                    placeholder=self.current_rule["value"],
+		                                    callback=self.parent.update_master_rule)
+		self.rule_group.resetButton = Button("auto", "Reset", callback=self.parent.reset_master_rule)
+		self.rule_group.resetButton.enable(False)
 
-		# check if a value is stored in the mastr's user data for the current setting, if yes, use it
-		master_settings = self.parent.font.selectedFontMaster.userData["HTLSManagerMasterSettings"]
-		if master_settings:
-			if self.setting in master_settings:
-				self.setting_group.value.set(str(master_settings[self.setting]).replace(",", "."))
-				self.setting_group.resetButton.enable(True)
+		# check if a value is stored in the mastr's user data for the current rule, if yes, use it
+		master_rules = self.parent.font.selectedFontMaster.userData["HTLSManagerMasterRules"]
+		if master_rules:
+			if self.rule in master_rules:
+				self.rule_group.value.set(str(master_rules[self.rule]).replace(",", "."))
+				self.rule_group.resetButton.enable(True)
 
 		group_rules = [
 			"H:|-margin-[subcategory(90)]-margin-[case(==subcategory)]-margin-[filter(==subcategory)]-margin-"
@@ -258,14 +262,15 @@ class HTLSMasterSettingGroup:
 			"V:|[resetButton(==value)]|",
 		]
 
-		self.setting_group.addAutoPosSizeRules(group_rules, self.parent.metrics)
+		self.rule_group.addAutoPosSizeRules(group_rules, self.parent.metrics)
 
 		# add all group elements to the elements set
-		self.parent.master_settings_elements.add(self.setting_group.subcategory)
-		self.parent.master_settings_elements.add(self.setting_group.case)
-		self.parent.master_settings_elements.add(self.setting_group.value)
-		self.parent.master_settings_elements.add(self.setting_group.filter)
-		self.parent.master_settings_elements.add(self.setting_group.resetButton)
+		self.parent.master_rules_elements.add(self.rule_group.subcategory)
+		self.parent.master_rules_elements.add(self.rule_group.case)
+		self.parent.master_rules_elements.add(self.rule_group.value)
+		self.parent.master_rules_elements.add(self.rule_group.filter)
+		self.parent.master_rules_elements.add(self.rule_group.resetButton)
 
-		# add the group to the setting group dictionary with ID
-		self.parent.master_settings_groups[self.setting] = self.setting_group
+		# add the group to the rule group dictionary with ID
+		self.parent.master_rules_groups[self.rule] = self.rule_group
+
