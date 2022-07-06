@@ -81,7 +81,6 @@ class HTLSGlyphView:
 		self.view_group.currentRightSideBearing.set(self.glyphs[self.glyph_name].layers[self.master_id].RSB)
 
 
-
 class HTLSParameterSlider:
 	def __init__(self, parent, parameter, master_id, current_value, min_value, max_value):
 		self.parent = parent
@@ -141,7 +140,7 @@ class HTLSParameterSlider:
 	def reset_slider_position(self, value):
 		if value == self.current_value:  # check whether slider was released
 			self.min_value = int(self.current_value) - 100
-			self.max_value = int(self.current_value )+ 100
+			self.max_value = int(self.current_value) + 100
 			self.slider_group.slider.set(int(self.current_value))
 			self.slider_group.slider.setMinValue(self.min_value)
 			self.slider_group.slider.setMaxValue(self.max_value)
@@ -153,7 +152,7 @@ class HTLSParameterSlider:
 		self.slider_group.slider.set(current_value)
 		self.slider_group.field.set(current_value)
 		self.slider_group.title.set("%s (%s)" % (self.parameter.replace("param", "").title(),
-		                                          self.parent.parameters_dict[self.master_id][self.parameter])
+		                                         self.parent.parameters_dict[self.master_id][self.parameter])
 		                            )
 
 
@@ -176,19 +175,19 @@ class HTLSFontRuleGroup:
 		self.current_rule = self.font_rules[self.category][self.rule]
 		self.rule_group = Group("auto")
 		self.rule_group.subcategory = PopUpButton("auto", self.parent.sub_categories[self.category],
-		                                             callback=self.parent.update_font_rule)
+		                                          callback=self.parent.update_font_rule)
 		self.rule_group.case = PopUpButton("auto", self.parent.cases, callback=self.parent.update_font_rule)
 		self.rule_group.value = EditText("auto",
-		                                    continuous=False,
-		                                    text=self.current_rule["value"],
-		                                    callback=self.parent.update_font_rule)
+		                                 continuous=False,
+		                                 text=self.current_rule["value"],
+		                                 callback=self.parent.update_font_rule)
 		self.rule_group.filter = EditText("auto",
-		                                     continuous=False,
-		                                     placeholder="None",
-		                                     text=self.current_rule["filter"],
-		                                     callback=self.parent.update_font_rule)
+		                                  continuous=False,
+		                                  placeholder="None",
+		                                  text=self.current_rule["filter"],
+		                                  callback=self.parent.update_font_rule)
 		self.rule_group.removeButton = Button("auto", "Remove rule",
-		                                         callback=self.parent.remove_font_rule_callback)
+		                                      callback=self.parent.remove_font_rule_callback)
 		self.rule_group.referenceGlyph = ComboBox("auto",
 		                                          [glyph.name for glyph in self.parent.font.glyphs],
 		                                          callback=self.parent.update_font_rule)
@@ -238,10 +237,10 @@ class HTLSMasterRuleGroup:
 		self.rule_group.case = TextBox("auto", self.parent.cases[self.current_rule["case"]])
 		self.rule_group.filter = TextBox("auto", str(self.current_rule["filter"] or "Any"))
 		self.rule_group.value = EditText("auto",
-		                                    continuous=False,
-		                                    text="",
-		                                    placeholder=self.current_rule["value"],
-		                                    callback=self.parent.update_master_rule)
+		                                 continuous=False,
+		                                 text="",
+		                                 placeholder=self.current_rule["value"],
+		                                 callback=self.parent.update_master_rule)
 		self.rule_group.resetButton = Button("auto", "Reset", callback=self.parent.reset_master_rule)
 		self.rule_group.resetButton.enable(False)
 
@@ -273,4 +272,3 @@ class HTLSMasterRuleGroup:
 
 		# add the group to the rule group dictionary with ID
 		self.parent.master_rules_groups[self.rule] = self.rule_group
-
