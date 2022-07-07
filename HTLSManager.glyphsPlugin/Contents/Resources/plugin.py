@@ -155,6 +155,8 @@ class HTLSManager(GeneralPlugin):
 		nsdict_userprofiles = Glyphs.defaults["com.eweracs.HTLSManager.userProfiles"]
 		if nsdict_userprofiles:
 			for profile_name in nsdict_userprofiles:
+				if profile_name == "Default":
+					continue
 				self.user_profiles[profile_name] = {}
 				for category in nsdict_userprofiles[profile_name]:
 					self.user_profiles[profile_name][category] = {}
