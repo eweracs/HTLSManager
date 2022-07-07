@@ -125,7 +125,7 @@ def find_exception(config, master_rules, layer):
 				or config[category][rule_id]["subcategory"] == "Any":
 			if case == config[category][rule_id]["case"] or config[category][rule_id]["case"] == "Any":
 				if config[category][rule_id]["filter"] in name:
-					rule = config[category][rule_id]
+					rule = dict(config[category][rule_id])
 					if master_rules and rule_id in master_rules:
 						rule["value"] = master_rules[rule_id]
 
@@ -202,7 +202,7 @@ class HTLSEngine:
 		if self.rule:
 			self.factor = float(self.rule["value"])
 			reference_glyph = self.font.glyphs[self.rule["referenceGlyph"]]
-			self.reference_layer = reference_glyph.layers[self.layer.associatedMasterId]
+			self.reference_layer = reference_glyph.layers[self.layer.associatedMasterId] or self.layer
 
 		if self.parent.leftGlyphView.glyph.name == self.layer.parent.name:
 			self.parent.parametersTab.leftGlyphView.glyphInfo.factor.set("Factor: %s" % self.factor)

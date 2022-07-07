@@ -180,7 +180,7 @@ class HTLSManager(GeneralPlugin):
 
 		#########################
 		#                       #
-		#   Font rules tab   #
+		#   Font rules tab      #
 		#                       #
 		#########################
 
@@ -472,6 +472,9 @@ class HTLSManager(GeneralPlugin):
 
 		self.write_font_rules()
 
+		self.leftGlyphView.set_exception_factor(self.font.selectedFontMaster)
+		self.rightGlyphView.set_exception_factor(self.font.selectedFontMaster)
+
 	@objc.python_method
 	def update_font_rule(self, sender):
 		for category in self.categories:
@@ -512,6 +515,10 @@ class HTLSManager(GeneralPlugin):
 
 		self.write_font_rules()
 
+		self.leftGlyphView.set_exception_factor(self.font.selectedFontMaster)
+		self.rightGlyphView.set_exception_factor(self.font.selectedFontMaster)
+
+
 	@objc.python_method
 	def rebuild_font_rules(self, new_rules):
 		for category in self.categories:
@@ -544,6 +551,9 @@ class HTLSManager(GeneralPlugin):
 					self.master_rules_groups[rule].resetButton.enable(False)
 				break
 
+		self.leftGlyphView.set_exception_factor(self.font.selectedFontMaster)
+		self.rightGlyphView.set_exception_factor(self.font.selectedFontMaster)
+
 	@objc.python_method
 	def reset_master_rule(self, sender):
 		for rule in self.master_rules_groups:
@@ -553,6 +563,9 @@ class HTLSManager(GeneralPlugin):
 				# remove the entry from the master's user data
 				del self.font.selectedFontMaster.userData["HTLSManagerMasterRules"][rule]
 				break
+
+		self.leftGlyphView.set_exception_factor(self.font.selectedFontMaster)
+		self.rightGlyphView.set_exception_factor(self.font.selectedFontMaster)
 
 	@objc.python_method
 	def write_font_rules(self):
@@ -621,6 +634,8 @@ class HTLSManager(GeneralPlugin):
 			self.parametersTab.masterName.set("Master: %s" % self.font.selectedFontMaster.name)
 
 			self.update_parameter_ui()
+			self.leftGlyphView.set_exception_factor(self.font.selectedFontMaster)
+			self.rightGlyphView.set_exception_factor(self.font.selectedFontMaster)
 
 			# read the current master's user data and update all fields in the master rules tab accordingly
 			for category in self.categories:
@@ -672,26 +687,24 @@ class HTLSManager(GeneralPlugin):
 
 	@objc.python_method
 	def apply_parameters_to_selection(self):
-		# if live preview is enables, run the HTLS engine for all glyphs in the current tab
-		layers = []
-		if not self.live_preview:
-			layers = [self.font.glyphs[self.leftGlyphView.glyph.name].layers[self.currentMasterID],
-			          self.font.glyphs[self.rightGlyphView.glyph.name].layers[self.currentMasterID]]
-		else:
-			if not self.font.currentTab:
-				self.font.newTab(self.leftGlyphView.glyph.name + self.rightGlyphView.glyph.name)
-			for layer in set(self.font.currentTab.layers):
-				layers.append(layer)
-
+		# if live preview is enabled, run the HTLS engine for all glyphs in the current tab
+		layers = [self.font.glyphs[self.leftGlyphView.glyph.name].layers[self.currentMasterID],
+		          self.font.glyphs[self.rightGlyphView.glyph.name].layers[self.currentMasterID]]
+		if not self.font.currentTab:
+			self.font.newTab(layers)
+		if self.live_preview:
+			for layer in self.font.currentTab.layers:
+				if layer not in layers:
+					layers.append(layer)
 
 		for layer in layers:
 			layer_lsb, layer_rsb = HTLSEngine(self, self.font_rules, layer).current_layer_sidebearings() or [None, None]
 			if not layer_lsb or not layer_rsb:
 				continue
 			if self.live_preview:
-				layer.LSB = layer_lsb
-				layer.RSB = layer_rsb
-				self.font.currentTab.forceRedraw()
+					layer.LSB = layer_lsb
+					layer.RSB = layer_rsb
+					self.font.currentTab.forceRedraw()
 			if layer.parent.name == self.leftGlyphView.glyph.name:
 				self.parametersTab.leftGlyphView.currentLeftSideBearing.set(layer_lsb)
 				self.parametersTab.leftGlyphView.currentRightSideBearing.set(layer_rsb)
