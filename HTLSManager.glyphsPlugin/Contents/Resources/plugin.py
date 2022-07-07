@@ -18,6 +18,7 @@ from HTLSLibrary import *
 # TODO: Write autospace.py file
 # TODO: display category, factor for glyph view
 # TODO: detect conflicting rules
+# TODO: automatically update glyph info on new glyph select
 
 
 class HTLSManager(GeneralPlugin):
@@ -368,9 +369,9 @@ class HTLSManager(GeneralPlugin):
 		self.parametersTab.divider = HorizontalLine("auto")
 
 		# add two HTLS glyph views to the Parameters tab
-		self.leftGlyphView = HTLSGlyphView(self, "n", self.font.glyphs, self.font.selectedFontMaster.id)
+		self.leftGlyphView = HTLSGlyphView(self, "n", self.font.glyphs, self.font.selectedFontMaster)
 		self.parametersTab.leftGlyphView = self.leftGlyphView.view_group
-		self.rightGlyphView = HTLSGlyphView(self, "o", self.font.glyphs, self.font.selectedFontMaster.id)
+		self.rightGlyphView = HTLSGlyphView(self, "o", self.font.glyphs, self.font.selectedFontMaster)
 		self.parametersTab.rightGlyphView = self.rightGlyphView.view_group
 
 		# add a checkbox at the botttom to toggle live preview in the current tab
@@ -390,9 +391,9 @@ class HTLSManager(GeneralPlugin):
 			"H:|-margin-[livePreview]",
 			"V:|-margin-[masterName]",
 			"V:|-margin-[title]-margin-[areaSettings]-margin-[depthSettings]-margin-[resetParameters]-margin-"
-			"[divider]-margin-[leftGlyphView(200)]-margin-[livePreview]-margin-|",
+			"[divider]-margin-[leftGlyphView(300)]-margin-[livePreview]-margin-|",
 			"V:|-margin-[title]-margin-[areaSettings]-margin-[depthSettings]-margin-[saveParameters]-margin-"
-			"[divider]-margin-[rightGlyphView(200)]-margin-[livePreview]-margin-|"
+			"[divider]-margin-[rightGlyphView(==leftGlyphView)]-margin-[livePreview]-margin-|"
 		]
 
 		self.parametersTab.addAutoPosSizeRules(parameters_tab_rules, self.metrics)
@@ -595,8 +596,8 @@ class HTLSManager(GeneralPlugin):
 
 		self.toggle_reset_parameters_button()
 
-		self.leftGlyphView.update_layer(self.currentMasterID)
-		self.rightGlyphView.update_layer(self.currentMasterID)
+		self.leftGlyphView.update_layer(self.font.selectedFontMaster)
+		self.rightGlyphView.update_layer(self.font.selectedFontMaster)
 
 	@objc.python_method
 	def switch_tabs(self, sender, tab_index=None):
@@ -647,8 +648,8 @@ class HTLSManager(GeneralPlugin):
 
 		# if the parameters tab is open, update the LSB and RSB on the parameters
 		if self.w.tabs.get() == 2:
-			self.leftGlyphView.update_sidebearings(self.currentMasterID)
-			self.rightGlyphView.update_sidebearings(self.currentMasterID)
+			self.leftGlyphView.update_sidebearings(self.font.selectedFontMaster)
+			self.rightGlyphView.update_sidebearings(self.font.selectedFontMaster)
 
 	@objc.python_method
 	def toggle_reset_parameters_button(self):
@@ -672,26 +673,29 @@ class HTLSManager(GeneralPlugin):
 	@objc.python_method
 	def apply_parameters_to_selection(self):
 		# if live preview is enables, run the HTLS engine for all glyphs in the current tab
-		if self.live_preview:
-			if not self.font.currentTab:
-				self.font.newTab(self.leftGlyphView.glyph_name + self.rightGlyphView.glyph_name)
-			layers = set(self.font.currentTab.layers)
+		layers = []
+		if not self.live_preview:
+			layers = [self.font.glyphs[self.leftGlyphView.glyph.name].layers[self.currentMasterID],
+			          self.font.glyphs[self.rightGlyphView.glyph.name].layers[self.currentMasterID]]
 		else:
-			layers = [self.font.glyphs[self.leftGlyphView.glyph_name].layers[self.currentMasterID],
-			          self.font.glyphs[self.rightGlyphView.glyph_name].layers[self.currentMasterID]]
+			if not self.font.currentTab:
+				self.font.newTab(self.leftGlyphView.glyph.name + self.rightGlyphView.glyph.name)
+			for layer in set(self.font.currentTab.layers):
+				layers.append(layer)
+
 
 		for layer in layers:
-			layer_lsb, layer_rsb = HTLSEngine(self.font_rules, layer).current_layer_sidebearings() or [None, None]
+			layer_lsb, layer_rsb = HTLSEngine(self, self.font_rules, layer).current_layer_sidebearings() or [None, None]
 			if not layer_lsb or not layer_rsb:
 				continue
 			if self.live_preview:
 				layer.LSB = layer_lsb
 				layer.RSB = layer_rsb
 				self.font.currentTab.forceRedraw()
-			if layer.parent.name == self.leftGlyphView.glyph_name:
+			if layer.parent.name == self.leftGlyphView.glyph.name:
 				self.parametersTab.leftGlyphView.currentLeftSideBearing.set(layer_lsb)
 				self.parametersTab.leftGlyphView.currentRightSideBearing.set(layer_rsb)
-			if layer.parent.name == self.rightGlyphView.glyph_name:
+			if layer.parent.name == self.rightGlyphView.glyph.name:
 				self.parametersTab.rightGlyphView.currentLeftSideBearing.set(layer_lsb)
 				self.parametersTab.rightGlyphView.currentRightSideBearing.set(layer_rsb)
 
@@ -752,6 +756,9 @@ class HTLSManager(GeneralPlugin):
 			pass
 		try:
 			self.leftGlyphView.set_glyph(Glyphs.defaults["com.eweracs.HTLSManager.leftGlyph"])
+		except:
+			pass
+		try:
 			self.rightGlyphView.set_glyph(Glyphs.defaults["com.eweracs.HTLSManager.rightGlyph"])
 		except:
 			pass
@@ -759,8 +766,8 @@ class HTLSManager(GeneralPlugin):
 	@objc.python_method
 	def write_preferences(self):
 		Glyphs.defaults["com.eweracs.HTLSManager.tab"] = self.w.tabs.get()
-		Glyphs.defaults["com.eweracs.HTLSManager.leftGlyph"] = self.leftGlyphView.glyph_name
-		Glyphs.defaults["com.eweracs.HTLSManager.rightGlyph"] = self.rightGlyphView.glyph_name
+		Glyphs.defaults["com.eweracs.HTLSManager.leftGlyph"] = self.leftGlyphView.glyph.name
+		Glyphs.defaults["com.eweracs.HTLSManager.rightGlyph"] = self.rightGlyphView.glyph.name
 		Glyphs.defaults["com.eweracs.HTLSManager.userProfiles"] = self.user_profiles
 
 	@objc.python_method

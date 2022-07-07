@@ -113,9 +113,64 @@ def zone_margins(l_margins, r_margins, min_y, max_y):
 	return points_filtered_l, points_filtered_r
 
 
+def find_exception(config, master_rules, layer):
+	category = layer.parent.category
+	subcategory = layer.parent.subCategory
+	case = layer.parent.case
+	name = layer.parent.name
+
+	rule = None
+	for rule_id in config[category]:
+		if subcategory == config[category][rule_id]["subcategory"] \
+				or config[category][rule_id]["subcategory"] == "Any":
+			if case == config[category][rule_id]["case"] or config[category][rule_id]["case"] == "Any":
+				if config[category][rule_id]["filter"] in name:
+					rule = config[category][rule_id]
+					if master_rules and rule_id in master_rules:
+						rule["value"] = master_rules[rule_id]
+
+	return rule
+
+
+def max_points(points):
+	# this function returns the extremes for a given set of points in a given zone
+
+	# filter those outside the range
+	# pointsFilteredL = [ x for x in points[0] if x.y>=minY and x.y<=maxY]
+	# pointsFilteredR = [ x for x in points[0] if x.y>=minY and x.y<=maxY]
+
+	# sort all given points by x
+	sort_points_by_xl = sorted(points[0], key=lambda tup: tup[0])
+	sort_points_by_xr = sorted(points[1], key=lambda tup: tup[0])
+
+	# get the extremes position, first and last in the list
+	left, lefty = sort_points_by_xl[0]
+	right, righty = sort_points_by_xr[-1]
+
+	return NSMakePoint(left, lefty), NSMakePoint(right, righty)
+
+
+def diagonize(margins_l, margins_r):
+	ystep = abs(margins_l[0].y - margins_l[1].y)
+	for i in range(len(margins_l) - 1):
+		if margins_l[i + 1].x - margins_l[i].x > ystep:
+			margins_l[i + 1].x = margins_l[i].x + ystep
+		if margins_r[i + 1].x - margins_r[i].x < -ystep:
+			margins_r[i + 1].x = margins_r[i].x - ystep
+
+	for i in reversed(range(len(margins_l) - 1)):
+		if margins_l[i].x - margins_l[i + 1].x > ystep:
+			margins_l[i].x = margins_l[i + 1].x + ystep
+		if margins_r[i].x - margins_r[i + 1].x < -ystep:
+			margins_r[i].x = margins_r[i + 1].x - ystep
+
+	return margins_l, margins_r
+
+
 class HTLSEngine:
 
-	def __init__(self, config, layer):
+	def __init__(self, parent, config, layer):
+		self.parent = parent
 		self.font = layer.parent.parent
 		self.master = layer.master
 		self.master_rules = self.master.userData["HTLSManagerMasterRules"]
@@ -143,57 +198,26 @@ class HTLSEngine:
 		self.upm = int(self.master.font.upm)
 		self.factor = 1
 
-		self.rule = self.find_exception()
+		self.rule = find_exception(self.config, self.master_rules, self.layer)
 		if self.rule:
 			self.factor = float(self.rule["value"])
 			reference_glyph = self.font.glyphs[self.rule["referenceGlyph"]]
 			self.reference_layer = reference_glyph.layers[self.layer.associatedMasterId]
 
-	def find_exception(self):
-		category = self.layer.parent.category
-		subcategory = self.layer.parent.subCategory
-		case = self.layer.parent.case
-		name = self.layer.parent.name
-
-		rule = None
-		for rule_id in self.config[category]:
-			if subcategory == self.config[category][rule_id]["subcategory"] \
-					or self.config[category][rule_id]["subcategory"] == "Any":
-				if case == self.config[category][rule_id]["case"] or self.config[category][rule_id]["case"] == "Any":
-					if self.config[category][rule_id]["filter"] in name:
-						rule = self.config[category][rule_id]
-						if self.master_rules and rule_id in self.master_rules:
-							rule["value"] = self.master_rules[rule_id]
-
-
-		return rule
+		if self.parent.leftGlyphView.glyph.name == self.layer.parent.name:
+			self.parent.parametersTab.leftGlyphView.glyphInfo.factor.set("Factor: %s" % self.factor)
+		if self.parent.rightGlyphView.glyph.name == self.layer.parent.name:
+			self.parent.parametersTab.rightGlyphView.glyphInfo.factor.set("Factor: %s" % self.factor)
 
 	def overshoot(self):
 		return self.xHeight * self.paramOver / 100
-
-	def max_points(self, points):
-		# this function returns the extremes for a given set of points in a given zone
-
-		# filter those outside the range
-		# pointsFilteredL = [ x for x in points[0] if x.y>=minY and x.y<=maxY]
-		# pointsFilteredR = [ x for x in points[0] if x.y>=minY and x.y<=maxY]
-
-		# sort all given points by x
-		sort_points_by_xl = sorted(points[0], key=lambda tup: tup[0])
-		sort_points_by_xr = sorted(points[1], key=lambda tup: tup[0])
-
-		# get the extremes position, first and last in the list
-		left, lefty = sort_points_by_xl[0]
-		right, righty = sort_points_by_xr[-1]
-
-		return NSMakePoint(left, lefty), NSMakePoint(right, righty)
 
 	def process_margins(self, l_margin, r_margin, l_extreme, r_extreme):
 		# set depth
 		l_margin, r_margin = self.set_depth(l_margin, r_margin, l_extreme, r_extreme)
 
 		# close open counterforms at 45 degrees
-		l_margin, r_margin = self.diagonize(l_margin, r_margin)
+		l_margin, r_margin = diagonize(l_margin, r_margin)
 		l_margin = self.close_open_counters(l_margin, l_extreme)
 		r_margin = self.close_open_counters(r_margin, r_extreme)
 
@@ -219,30 +243,6 @@ class HTLSEngine:
 			margins_l.append(NSMakePoint(maxdepth, y))
 			margins_r.append(NSMakePoint(mindepth, y))
 			y += self.paramFreq
-
-		# if marginsL[-1].y<(self.maxYref-paramFreq):
-		# 	marginsL.append(NSMakePoint(min(p.x, maxdepth), self.maxYref))
-		# 	marginsR.append(NSMakePoint(max(p.x, mindepth), self.maxYref))
-		# if marginsL[0].y>(self.minYref):
-		# 	marginsL.insert(0,NSMakePoint(min(p.x, maxdepth), self.minYref))
-		# 	marginsR.insert(0,NSMakePoint(max(p.x, mindepth), self.minYref))
-
-		return margins_l, margins_r
-
-	# close counters at 45 degrees
-	def diagonize(self, margins_l, margins_r):
-		ystep = abs(margins_l[0].y - margins_l[1].y)
-		for i in range(len(margins_l) - 1):
-			if margins_l[i + 1].x - margins_l[i].x > ystep:
-				margins_l[i + 1].x = margins_l[i].x + ystep
-			if margins_r[i + 1].x - margins_r[i].x < -ystep:
-				margins_r[i + 1].x = margins_r[i].x - ystep
-
-		for i in reversed(range(len(margins_l) - 1)):
-			if margins_l[i].x - margins_l[i + 1].x > ystep:
-				margins_l[i].x = margins_l[i + 1].x + ystep
-			if margins_r[i].x - margins_r[i + 1].x < -ystep:
-				margins_r[i].x = margins_r[i + 1].x - ystep
 
 		return margins_l, margins_r
 
@@ -329,9 +329,9 @@ class HTLSEngine:
 			r_total_margins = self.deslant(r_total_margins)
 
 		# full shape extreme points
-		l_full_extreme, r_full_extreme = self.max_points([l_total_margins, r_total_margins])
+		l_full_extreme, r_full_extreme = max_points([l_total_margins, r_total_margins])
 		# get zone extreme points
-		l_extreme, r_extreme = self.max_points([l_zone_margins, r_zone_margins])
+		l_extreme, r_extreme = max_points([l_zone_margins, r_zone_margins])
 
 		# create a closed polygon
 		l_polygon, r_polygon = self.process_margins(l_zone_margins, r_zone_margins, l_extreme, r_extreme)

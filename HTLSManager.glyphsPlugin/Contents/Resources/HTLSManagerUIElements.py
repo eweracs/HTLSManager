@@ -2,42 +2,67 @@ from vanilla import *
 from GlyphsApp.UI import GlyphView
 from GlyphsApp import Message
 from AppKit import NSColor
+from HTLSLibrary import *
 
 
 class HTLSGlyphView:
-	def __init__(self, parent, glyph_name, glyphs, master_id):
+	def __init__(self, parent, glyph_name, glyphs, master):
 		self.parent = parent
-		self.glyph_name = glyph_name
 		self.glyphs = glyphs
-		self.master_id = master_id
+		self.glyph = glyphs[glyph_name]
+		self.master = master
 		# add a group with the following elements: a GlyphView, a ComboBox to select the glyph, one text bow each
 		# to show the current left side bearing and right side bearing
 		self.view_group = Group("auto")
 		self.view_group.glyphView = GlyphView("auto",
-		                                      layer=self.glyphs[self.glyph_name].layers[self.master_id],
+		                                      layer=self.glyph.layers[self.master.id],
 		                                      backgroundColor=NSColor.clearColor())
 		self.view_group.glyphSelector = ComboBox("auto",
 		                                         [glyph.name for glyph in self.glyphs],
 		                                         callback=self.glyph_selector_callback)
-		self.view_group.glyphSelector.set(self.glyph_name)
-
-		self.view_group.currentLeftSideBearing = TextBox("auto",
-		                                                 self.glyphs[self.glyph_name].layers[self.master_id].LSB,
-		                                                 alignment="left"
-		                                                 )
-		self.view_group.currentRightSideBearing = TextBox("auto",
-		                                                  self.glyphs[self.glyph_name].layers[self.master_id].RSB,
-		                                                  alignment="right"
-		                                                  )
+		self.view_group.glyphSelector.set(self.glyph.name)
 
 		self.view_group.originalLeftSideBearing = TextBox(
-			"auto", "(%s)" % self.parent.metricsDict[self.glyph_name][self.master_id][0], alignment="left"
+			"auto", "(%s)" % self.parent.metricsDict[self.glyph.name][self.master.id][0], alignment="left"
 		)
 		self.view_group.originalRightSideBearing = TextBox(
-			"auto", "(%s)" % self.parent.metricsDict[self.glyph_name][self.master_id][1], alignment="right"
+			"auto", "(%s)" % self.parent.metricsDict[self.glyph.name][self.master.id][1], alignment="right"
 		)
 		self.view_group.padding1 = Group("auto")
 		self.view_group.padding2 = Group("auto")
+
+		self.view_group.currentLeftSideBearing = TextBox("auto",
+		                                                 self.glyph.layers[self.master.id].LSB,
+		                                                 alignment="left"
+		                                                 )
+		self.view_group.currentRightSideBearing = TextBox("auto",
+		                                                  self.glyph.layers[self.master.id].RSB,
+		                                                  alignment="right"
+		                                                  )
+
+		self.view_group.glyphInfo = Group("auto")
+		self.view_group.glyphInfo.category = TextBox("auto",
+		                                             "Category: %s" % self.glyph.category,
+		                                             sizeStyle="small")
+		self.view_group.glyphInfo.subCategory = TextBox("auto",
+		                                                "Subcategory: %s" % self.glyph.subCategory,
+		                                                sizeStyle="small")
+		self.view_group.glyphInfo.case = TextBox("auto",
+		                                         "Case: %s" % self.parent.cases[self.glyph.case],
+		                                         sizeStyle="small")
+		self.view_group.glyphInfo.factor = TextBox("auto", "Factor: 1.0", sizeStyle="small")
+
+		self.set_exception_factor()
+
+		info_rules = [
+			"H:|-margin-[category]",
+			"H:|-margin-[subCategory]",
+			"H:|-margin-[case]",
+			"H:|-margin-[factor]",
+			"V:|-margin-[category]-[subCategory]-[case]-[factor]|",
+		]
+
+		self.view_group.glyphInfo.addAutoPosSizeRules(info_rules, self.parent.metrics)
 
 		# add rules to the glyph view groups
 		view_group_rules = [
@@ -45,7 +70,8 @@ class HTLSGlyphView:
 			"H:|-margin-[glyphSelector]-margin-|",
 			"H:|-20-[originalLeftSideBearing]-margin-[originalRightSideBearing]-20-|",
 			"H:|-20-[currentLeftSideBearing]-margin-[currentRightSideBearing]-20-|",
-			"V:|-margin-[glyphView]-margin-[glyphSelector]-margin-|",
+			"H:|-margin-[glyphInfo]-margin-|",
+			"V:|-margin-[glyphView]-margin-[glyphSelector]-margin-[glyphInfo]-margin-|",
 			"V:|-margin-[originalLeftSideBearing]",
 			"V:|-margin-[originalRightSideBearing]",
 			"V:|-[padding1]-[currentLeftSideBearing]-[padding2(==padding1)]-[glyphSelector]",
@@ -60,26 +86,45 @@ class HTLSGlyphView:
 
 	def set_glyph(self, glyph_name):
 		if glyph_name in self.glyphs:
-			self.glyph_name = glyph_name
-		self.view_group.glyphView.layer = self.glyphs[self.glyph_name].layers[self.parent.font.selectedFontMaster.id]
-		self.view_group.glyphSelector.set(self.glyph_name)
-		self.view_group.leftSideBearing.set(self.parent.metricsDict[self.glyph_name][self.master_id][0])
-		self.view_group.rightSideBearing.set(self.parent.metricsDict[self.glyph_name][self.master_id][1])
+			self.glyph = self.glyphs[glyph_name]
+		self.view_group.glyphView.layer = self.glyph.layers[self.parent.font.selectedFontMaster.id]
+		self.view_group.glyphSelector.set(self.glyph.name)
+		self.view_group.originalLeftSideBearing.set("(%s)" % self.parent.metricsDict[self.glyph.name][
+			self.master.id][0])
+		self.view_group.originalRightSideBearing.set("(%s)" % self.parent.metricsDict[self.glyph.name][
+			self.master.id][1])
+		self.view_group.currentLeftSideBearing.set(self.glyph.layers[self.master.id].LSB)
+		self.view_group.currentRightSideBearing.set(self.glyph.layers[self.master.id].RSB)
 
-	def update_layer(self, master_id):
-		self.master_id = master_id
-		self.view_group.glyphView.layer = self.glyphs[self.glyph_name].layers[self.master_id]
+		# update case, category and subcategory
+		self.view_group.glyphInfo.category.set("Category: %s" % self.glyph.category)
+		self.view_group.glyphInfo.subCategory.set("Subcategory: %s" % self.glyph.subCategory)
+		self.view_group.glyphInfo.case.set("Case: %s" % self.parent.cases[self.glyph.case])
+
+		self.set_exception_factor()
+
+	def update_layer(self, master):
+		self.master = master
+		self.view_group.glyphView.layer = self.glyph.layers[self.master.id]
 		self.view_group.originalLeftSideBearing.set(
-			"(%s)" % self.parent.metricsDict[self.glyph_name][self.master_id][0]
+			"(%s)" % self.parent.metricsDict[self.glyph.name][self.master.id][0]
 		)
 		self.view_group.originalRightSideBearing.set(
-			"(%s)" % self.parent.metricsDict[self.glyph_name][self.master_id][1]
+			"(%s)" % self.parent.metricsDict[self.glyph.name][self.master.id][1]
 		)
 
-	def update_sidebearings(self, master_id):
-		self.master_id = master_id
-		self.view_group.currentLeftSideBearing.set(self.glyphs[self.glyph_name].layers[self.master_id].LSB)
-		self.view_group.currentRightSideBearing.set(self.glyphs[self.glyph_name].layers[self.master_id].RSB)
+	def update_sidebearings(self, master):
+		self.master = master
+		self.view_group.currentLeftSideBearing.set(self.glyph.layers[self.master.id].LSB)
+		self.view_group.currentRightSideBearing.set(self.glyph.layers[self.master.id].RSB)
+
+	def set_exception_factor(self):
+		rule = find_exception(self.parent.font_rules,
+		                      self.master.userData["HTLSManagerMasterRules"],
+		                      self.glyph.layers[self.master.id]
+		                      )
+		if rule:
+			self.view_group.glyphInfo.factor.set("Factor: %s" % float(rule["value"]))
 
 
 class HTLSParameterSlider:
@@ -139,7 +184,6 @@ class HTLSParameterSlider:
 		self.parent.reset_area_slider_position(sender.get())
 		self.current_value = float(sender.get())
 
-
 	def reset_slider_position(self, value):
 		if value == self.current_value:  # check whether slider was released
 			self.min_value = int(self.current_value) - 100
@@ -165,12 +209,6 @@ class HTLSFontRuleGroup:
 		self.parent = parent
 		self.category = category
 		self.rule = rule
-
-		# return a group for the category group, using the key from the rule to find the group
-		# the group contains a title, a dropdown for the subcategory, a dropdown for the case, an editable text field
-		# for the value, a textfield for the reference glyph, a textfield for the filter
-		# the group has a button to remove the setting
-		# if the rule is empty, skip it
 
 		if self.rule not in self.font_rules[self.category]:
 			return
@@ -247,7 +285,7 @@ class HTLSMasterRuleGroup:
 		self.rule_group.resetButton = Button("auto", "Reset", callback=self.parent.reset_master_rule)
 		self.rule_group.resetButton.enable(False)
 
-		# check if a value is stored in the mastr's user data for the current rule, if yes, use it
+		# check if a value is stored in the master's user data for the current rule, if yes, use it
 		master_rules = self.parent.font.selectedFontMaster.userData["HTLSManagerMasterRules"]
 		if master_rules:
 			if self.rule in master_rules:
