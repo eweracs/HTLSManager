@@ -52,7 +52,7 @@ class HTLSGlyphView:
 		                                         sizeStyle="small")
 		self.view_group.glyphInfo.factor = TextBox("auto", "Factor: 1.0", sizeStyle="small")
 
-		self.set_exception_factor()
+		self.set_exception_factor(self.master)
 
 		info_rules = [
 			"H:|-margin-[category]",
@@ -101,7 +101,7 @@ class HTLSGlyphView:
 		self.view_group.glyphInfo.subCategory.set("Subcategory: %s" % self.glyph.subCategory)
 		self.view_group.glyphInfo.case.set("Case: %s" % self.parent.cases[self.glyph.case])
 
-		self.set_exception_factor()
+		self.set_exception_factor(self.master)
 
 	def update_layer(self, master):
 		self.master = master
@@ -118,10 +118,10 @@ class HTLSGlyphView:
 		self.view_group.currentLeftSideBearing.set(self.glyph.layers[self.master.id].LSB)
 		self.view_group.currentRightSideBearing.set(self.glyph.layers[self.master.id].RSB)
 
-	def set_exception_factor(self):
+	def set_exception_factor(self, master):
 		rule = find_exception(self.parent.font_rules,
-		                      self.master.userData["HTLSManagerMasterRules"],
-		                      self.glyph.layers[self.master.id]
+		                      master.userData["HTLSManagerMasterRules"],
+		                      self.glyph.layers[master.id]
 		                      )
 		if rule:
 			self.view_group.glyphInfo.factor.set("Factor: %s" % float(rule["value"]))
@@ -238,7 +238,7 @@ class HTLSFontRuleGroup:
 		self.rule_group.referenceGlyph.set(self.current_rule["referenceGlyph"])
 
 		group_rules = [
-			"H:|-margin-[subcategory(116)]-margin-[case]-margin-[filter(==value)]-margin-[referenceGlyph(>=90)]-margin-"
+			"H:|-margin-[subcategory(116)]-margin-[case]-margin-[filter(==value)]-margin-[referenceGlyph(90)]-margin-"
 			"[value(60)]-margin-[removeButton]|",
 			"V:|[value(22)]|",
 			"V:|[subcategory(==value)]|",
