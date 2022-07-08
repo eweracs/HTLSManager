@@ -488,10 +488,10 @@ class HTLSManager(GeneralPlugin):
 
 						# if the sender is the referenceGlyph, check if the glyph exists.
 						if key == "referenceGlyph":
-							if sender.get() not in self.font.glyphs and sender.get() is not "":
+							if sender.get() not in self.font.glyphs and len(sender.get()) > 0:
 								Message(title="Glyph not found",
 								        message="The glyph %s does not exist in the font." % sender.get())
-								sender.set(self.font.glyphs[0].name)
+								sender.set("")
 							self.font_rules[category][rule][key] = sender.get()
 
 						# if the sender is for the value, make sure it is a number
@@ -504,6 +504,7 @@ class HTLSManager(GeneralPlugin):
 								self.font_rules[category][rule][key] = 1
 								sender.set("1")
 							getattr(self.master_rules_groups[rule], key).setPlaceholder(sender.get())
+							self.font_rules[category][rule][key] = float(sender.get())
 
 						# update the text fields in the master tab
 						if key == "subcategory":

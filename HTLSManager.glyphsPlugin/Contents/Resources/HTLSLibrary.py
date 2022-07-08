@@ -191,7 +191,7 @@ class HTLSEngine:
 		self.RSB = None
 		self.paramArea = self.master.customParameters["paramArea"] or 400
 		self.paramDepth = self.master.customParameters["paramDepth"] or 12
-		self.paramOver = self.master.customParameters["paramOver"] or 0
+		self.paramOver = 0  # self.master.customParameters["paramOver"] or 0
 		self.paramFreq = 5
 		self.xHeight = int(self.master.xHeight)
 		self.angle = layer.italicAngle
