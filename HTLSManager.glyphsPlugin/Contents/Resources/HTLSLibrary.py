@@ -113,25 +113,6 @@ def zone_margins(l_margins, r_margins, min_y, max_y):
 	return points_filtered_l, points_filtered_r
 
 
-def find_exception(config, master_rules, layer):
-	category = layer.parent.category
-	subcategory = layer.parent.subCategory
-	case = layer.parent.case
-	name = layer.parent.name
-
-	rule = None
-	for rule_id in config[category]:
-		if subcategory == config[category][rule_id]["subcategory"] \
-				or config[category][rule_id]["subcategory"] == "Any":
-			if case == config[category][rule_id]["case"] or config[category][rule_id]["case"] == "Any":
-				if config[category][rule_id]["filter"] in name:
-					rule = dict(config[category][rule_id])
-					if master_rules and rule_id in master_rules:
-						rule["value"] = master_rules[rule_id]
-
-	return rule
-
-
 def max_points(points):
 	# this function returns the extremes for a given set of points in a given zone
 
@@ -169,7 +150,7 @@ def diagonize(margins_l, margins_r):
 
 class HTLSEngine:
 
-	def __init__(self, parent, config, layer):
+	def __init__(self, config, layer, parent=None):
 		self.parent = parent
 		self.font = layer.parent.parent
 		self.master = layer.master
@@ -197,17 +178,45 @@ class HTLSEngine:
 		self.angle = layer.italicAngle
 		self.upm = int(self.master.font.upm)
 		self.factor = 1
+		self.output = "Spacing...\nLayer: %s (%s)\n" % (self.layer.parent.name, self.master.name)
 
-		self.rule = find_exception(self.config, self.master_rules, self.layer)
+		self.rule = self.find_exception()
 		if self.rule:
 			self.factor = float(self.rule["value"])
 			reference_glyph = self.font.glyphs[self.rule["referenceGlyph"]]
 			self.reference_layer = reference_glyph.layers[self.layer.associatedMasterId] or self.layer
 
-		if self.parent.leftGlyphView.glyph.name == self.layer.parent.name:
-			self.parent.parametersTab.leftGlyphView.glyphInfo.factor.set("Factor: %s" % self.factor)
-		if self.parent.rightGlyphView.glyph.name == self.layer.parent.name:
-			self.parent.parametersTab.rightGlyphView.glyphInfo.factor.set("Factor: %s" % self.factor)
+		self.output += "Reference: %s\nFactor: %s\n__________________\n" % (
+			self.reference_layer.parent.name, float(self.factor)
+		)
+
+		if parent:
+			if self.parent.leftGlyphView.glyph.name == self.layer.parent.name:
+				self.parent.parametersTab.leftGlyphView.glyphInfo.factor.set("Factor: %s" % self.factor)
+			if self.parent.rightGlyphView.glyph.name == self.layer.parent.name:
+				self.parent.parametersTab.rightGlyphView.glyphInfo.factor.set("Factor: %s" % self.factor)
+
+	def find_exception(self):
+		category = self.layer.parent.category
+		subcategory = self.layer.parent.subCategory
+		case = self.layer.parent.case
+		name = self.layer.parent.name
+
+		rule = None
+		for rule_id in self.config[category]:
+			if subcategory == self.config[category][rule_id]["subcategory"] \
+					or self.config[category][rule_id]["subcategory"] == "Any":
+				if case == self.config[category][rule_id]["case"] or self.config[category][rule_id]["case"] == "Any":
+					if self.config[category][rule_id]["filter"] in name:
+						rule = dict(self.config[category][rule_id])
+						if self.master_rules and rule_id in self.master_rules:
+							rule["value"] = self.master_rules[rule_id]
+		if rule:
+			self.output += "Found spacing rule\n"
+		else:
+			self.output += "No spacing rule found\n"
+
+		return rule
 
 	def overshoot(self):
 		return self.xHeight * self.paramOver / 100
