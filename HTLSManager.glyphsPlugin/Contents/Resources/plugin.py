@@ -16,9 +16,7 @@ from HTLSLibrary import *
 # TODO: Set master to interpolate from masters
 # TODO: make rebuilding of UI faster
 # TODO: Write autospace.py file
-# TODO: display category, factor for glyph view
 # TODO: detect conflicting rules
-# TODO: automatically update glyph info on new glyph select
 
 
 class HTLSManager(GeneralPlugin):
@@ -322,6 +320,10 @@ class HTLSManager(GeneralPlugin):
 		                                        "Master: %s" % self.font.selectedFontMaster.name,
 		                                        alignment="right")
 
+		# add an action button for options for the current master
+		self.parametersTab.masterOptions = ActionButton("auto", self.action_button_items())
+
+
 		self.current_area_value = self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"]
 
 		self.master_parameters_sliders = {}
@@ -371,7 +373,7 @@ class HTLSManager(GeneralPlugin):
 
 		parameters_tab_rules = [
 			"H:|-margin-[title]",
-			"H:[masterName]-margin-|",
+			"H:[masterName]-margin-[masterOptions]-margin-|",
 			"H:|-margin-[areaSettings]-margin-|",
 			"H:|-margin-[depthSettings]-margin-|",
 			"H:|-margin-[resetParameters]",
@@ -380,6 +382,7 @@ class HTLSManager(GeneralPlugin):
 			"H:|-margin-[leftGlyphView(200)]-margin-[rightGlyphView(200)]-margin-|",
 			"H:|-margin-[livePreview]",
 			"V:|-margin-[masterName]",
+			"V:|-margin-[masterOptions]",
 			"V:|-margin-[title]-margin-[areaSettings]-margin-[depthSettings]-margin-[resetParameters]-margin-"
 			"[divider]-margin-[leftGlyphView(300)]-margin-[livePreview]-margin-|",
 			"V:|-margin-[title]-margin-[areaSettings]-margin-[depthSettings]-margin-[saveParameters]-margin-"
@@ -604,6 +607,45 @@ class HTLSManager(GeneralPlugin):
 		self.rightGlyphView.update_layer(self.font.selectedFontMaster)
 
 	@objc.python_method
+	def link_master_callback(self, sender):
+		master_to_link = None
+		for master in self.font.masters:
+			if master.name == sender.title():
+				master_to_link = master
+				break
+		if master_to_link:
+			self.link_master(master_to_link)
+
+	@objc.python_method
+	def link_master(self, master):
+		self.font.selectedFontMaster.userData["HTLSManagerLinkedMaster"] = master.id
+		self.areaSettings.ui_update(master.id, master.customParameters["paramArea"],
+		                                          int(master.customParameters["paramArea"]) - 100,
+		                                          int(master.customParameters["paramArea"]) + 100)
+		self.depthSettings.ui_update(master.id, master.customParameters["paramDepth"], 1, 20)
+		self.depthSettings.master_id = self.currentMasterID
+
+	@objc.python_method
+	def interpolate_parameters_callback(self, sender):
+		self.interpolate_sheet = Sheet((200, 200), self.w)
+		self.interpolate_sheet.closeButton = Button("auto", "Under construction...",
+		                                            callback=self.close_interpolate_sheet)
+
+		sheet_rules = [
+			"H:|-[closeButton]-|",
+			"V:|-[closeButton]-|",
+		]
+
+		self.interpolate_sheet.addAutoPosSizeRules(sheet_rules)
+
+		self.interpolate_sheet.open()
+
+	@objc.python_method
+	def close_interpolate_sheet(self, sender):
+		self.interpolate_sheet.close()
+		del self.interpolate_sheet
+
+	@objc.python_method
 	def switch_tabs(self, sender, tab_index=None):
 		if not tab_index and sender:
 			tab_index = sender.get() or 0
@@ -624,6 +666,7 @@ class HTLSManager(GeneralPlugin):
 			self.masterRulesTab.masterName.set("Master: %s" % self.font.selectedFontMaster.name)
 			self.parametersTab.masterName.set("Master: %s" % self.font.selectedFontMaster.name)
 
+			self.parametersTab.masterOptions.setItems(self.action_button_items())
 			self.update_parameter_ui()
 			self.leftGlyphView.set_exception_factor(self.font.selectedFontMaster)
 			self.rightGlyphView.set_exception_factor(self.font.selectedFontMaster)
@@ -656,6 +699,18 @@ class HTLSManager(GeneralPlugin):
 		if self.w.tabs.get() == 2:
 			self.leftGlyphView.update_sidebearings(self.font.selectedFontMaster)
 			self.rightGlyphView.update_sidebearings(self.font.selectedFontMaster)
+
+	@objc.python_method
+	def action_button_items(self):
+		action_items = [
+			dict(title="Link master to... (Under construction)", items=[
+				dict(title=master.name, callback=self.link_master_callback)
+				for master in self.font.masters if master is not self.font.selectedFontMaster]
+			     ),
+			dict(title="Interpolate parameters...", callback=self.interpolate_parameters_callback)
+		]
+
+		return action_items
 
 	@objc.python_method
 	def toggle_reset_parameters_button(self):
