@@ -119,7 +119,7 @@ class HTLSGlyphView:
 		self.view_group.currentRightSideBearing.set(self.glyph.layers[self.master.id].RSB)
 
 	def set_exception_factor(self, master):
-		rule = HTLSEngine(self.parent.font_rules, self.glyph.layers[self.master.id]).find_exception()
+		rule = HTLSEngine(self.glyph.layers[self.master.id]).find_exception()
 		if rule:
 			self.view_group.glyphInfo.factor.set("Factor: %s" % float(rule["value"]))
 

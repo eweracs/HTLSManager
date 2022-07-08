@@ -78,19 +78,7 @@ class HTLSManager(GeneralPlugin):
 
 		# dictionary of all font rules with key: category
 		# for every category, dictionary with keys: subcategory, case, value, referenceGlyph, filter
-		self.font_rules = {}
-
-		nsdict_fontrules = self.font.userData["com.eweracs.HTLSManager.fontRules"]
-		if nsdict_fontrules:
-			for category in nsdict_fontrules:
-				self.font_rules[category] = {}
-				for rule_id in nsdict_fontrules[category]:
-					self.font_rules[category][rule_id] = dict(nsdict_fontrules[category][rule_id])
-
-		# if the category is not in the dictionary, add it
-		for category in self.categories:
-			if category not in self.font_rules:
-				self.font_rules[category] = {}
+		self.font_rules = read_config(self.font)
 
 		# add a default value for area and depth to every master if not present
 		for master in self.font.masters:
@@ -701,7 +689,7 @@ class HTLSManager(GeneralPlugin):
 					layers.append(layer)
 
 		for layer in layers:
-			layer_lsb, layer_rsb = HTLSEngine(self, self.font_rules, layer).current_layer_sidebearings() or [None, None]
+			layer_lsb, layer_rsb = HTLSEngine(layer, self).current_layer_sidebearings() or [None, None]
 			if not layer_lsb or not layer_rsb:
 				continue
 			if self.live_preview:

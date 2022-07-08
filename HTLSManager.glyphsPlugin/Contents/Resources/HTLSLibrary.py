@@ -148,14 +148,32 @@ def diagonize(margins_l, margins_r):
 	return margins_l, margins_r
 
 
+def read_config(font):
+	categories = ["Letter", "Number", "Punctuation", "Symbol", "Mark"]
+
+	font_rules = {}
+
+	nsdict_fontrules = font.userData["com.eweracs.HTLSManager.fontRules"]
+	if nsdict_fontrules:
+		for category in nsdict_fontrules:
+			font_rules[category] = {}
+			for rule_id in nsdict_fontrules[category]:
+				font_rules[category][rule_id] = dict(nsdict_fontrules[category][rule_id])
+
+	# if the category is not in the dictionary, add it
+	for category in categories:
+		if category not in font_rules:
+			font_rules[category] = {}
+
+	return font_rules
+
+
 class HTLSEngine:
 
-	def __init__(self, config, layer, parent=None):
+	def __init__(self, layer, parent=None):
 		self.parent = parent
 		self.font = layer.parent.parent
 		self.master = layer.master
-		self.master_rules = self.master.userData["HTLSManagerMasterRules"]
-		self.config = config
 		self.layer = layer
 		self.reference_layer = layer
 		self.minYref = None
@@ -179,6 +197,12 @@ class HTLSEngine:
 		self.upm = int(self.master.font.upm)
 		self.factor = 1
 		self.output = "Spacing...\nLayer: %s (%s)\n" % (self.layer.parent.name, self.master.name)
+
+		self.config = read_config(self.font)
+		self.master_rules = self.master.userData["HTLSManagerMasterRules"]
+
+		self.l_polygon = None
+		self.r_polygon = None
 
 		self.rule = self.find_exception()
 		if self.rule:
@@ -289,7 +313,7 @@ class HTLSEngine:
 			import traceback
 			print(traceback.format_exc())
 
-	def current_layer_sidebearings(self):
+	def calculate_polygons(self):
 		if not self.layer.name \
 				or len(self.layer.components) + len(self.layer.paths) == 0 \
 				or self.layer.hasAlignedWidth() \
@@ -338,22 +362,25 @@ class HTLSEngine:
 			r_total_margins = self.deslant(r_total_margins)
 
 		# full shape extreme points
-		l_full_extreme, r_full_extreme = max_points([l_total_margins, r_total_margins])
+		self.l_full_extreme, self.r_full_extreme = max_points([l_total_margins, r_total_margins])
 		# get zone extreme points
 		l_extreme, r_extreme = max_points([l_zone_margins, r_zone_margins])
 
-		# create a closed polygon
-		l_polygon, r_polygon = self.process_margins(l_zone_margins, r_zone_margins, l_extreme, r_extreme)
-
-		# return
-
 		# dif between extremes full and zone
-		distance_l = math.ceil(l_extreme.x - l_full_extreme.x)
-		distance_r = math.ceil(r_full_extreme.x - r_extreme.x)
+		self.distance_l = math.ceil(l_extreme.x - self.l_full_extreme.x)
+		self.distance_r = math.ceil(self.r_full_extreme.x - r_extreme.x)
 
+		# create a closed polygon
+		self.l_polygon, self.r_polygon = self.process_margins(l_zone_margins, r_zone_margins, l_extreme, r_extreme)
+
+		return self.l_polygon, self.r_polygon
+	
+	def current_layer_sidebearings(self):
+		if not self.calculate_polygons():
+			return
 		# set new sidebearings
-		self.newL = math.ceil(0 - distance_l + self.calculate_sb_value(l_polygon))
-		self.newR = math.ceil(0 - distance_r + self.calculate_sb_value(r_polygon))
+		self.newL = math.ceil(0 - self.distance_l + self.calculate_sb_value(self.l_polygon))
+		self.newR = math.ceil(0 - self.distance_r + self.calculate_sb_value(self.r_polygon))
 
 		# tabVersion
 		if ".tosf" in self.layer.parent.name or ".tf" in self.layer.parent.name or self.tabVersion:
@@ -362,7 +389,7 @@ class HTLSEngine:
 			else:
 				self.layerWidth = self.layer.width
 
-			width_shape = r_full_extreme.x - l_full_extreme.x
+			width_shape = self.r_full_extreme.x - self.l_full_extreme.x
 			width_actual = width_shape + self.newL + self.newR
 			width_diff = (self.layerWidth - width_actual) / 2
 
@@ -380,4 +407,4 @@ class HTLSEngine:
 			if self.layer.parent.rightMetricsKey is not None or self.RSB is False:
 				self.newR = self.layer.RSB
 
-		return self.newL, self.newR
+			return self.newL, self.newR
