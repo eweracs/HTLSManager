@@ -323,7 +323,6 @@ class HTLSManager(GeneralPlugin):
 		# add an action button for options for the current master
 		self.parametersTab.masterOptions = ActionButton("auto", self.action_button_items())
 
-
 		self.current_area_value = self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"]
 
 		self.master_parameters_sliders = {}
@@ -343,10 +342,7 @@ class HTLSManager(GeneralPlugin):
 			self,
 			"paramDepth",
 			self.font.selectedFontMaster.id,
-			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramDepth"]),
-			1,
-			20
-		)
+			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramDepth"]))
 
 		self.parametersTab.areaSettings = self.areaSettings.slider_group
 		self.parametersTab.depthSettings = self.depthSettings.slider_group
@@ -442,6 +438,8 @@ class HTLSManager(GeneralPlugin):
 
 		self.write_font_rules()
 
+		self.fontRulesTab.profiles.selector.setItem("Choose...")
+
 	@objc.python_method
 	def remove_font_rule_callback(self, sender):
 		for category in self.categories:
@@ -467,6 +465,7 @@ class HTLSManager(GeneralPlugin):
 
 		self.leftGlyphView.set_exception_factor(self.font.selectedFontMaster)
 		self.rightGlyphView.set_exception_factor(self.font.selectedFontMaster)
+		self.fontRulesTab.profiles.selector.setItem("Choose...")
 
 	@objc.python_method
 	def update_font_rule(self, sender):
@@ -511,7 +510,6 @@ class HTLSManager(GeneralPlugin):
 
 		self.leftGlyphView.set_exception_factor(self.font.selectedFontMaster)
 		self.rightGlyphView.set_exception_factor(self.font.selectedFontMaster)
-
 
 	@objc.python_method
 	def rebuild_font_rules(self, new_rules):
@@ -593,13 +591,9 @@ class HTLSManager(GeneralPlugin):
 		self.areaSettings.ui_update(self.currentMasterID,
 		                            int(self.font.selectedFontMaster.customParameters["paramArea"]),
 		                            int(self.font.selectedFontMaster.customParameters["paramArea"]) - 100,
-		                            int(self.font.selectedFontMaster.customParameters["paramArea"]) + 100
-		                            )
+		                            int(self.font.selectedFontMaster.customParameters["paramArea"]) + 100)
 		self.depthSettings.ui_update(self.currentMasterID,
-		                             int(self.font.selectedFontMaster.customParameters["paramDepth"]),
-		                             1,
-		                             20
-		                             )
+		                             int(self.font.selectedFontMaster.customParameters["paramDepth"]))
 
 		self.toggle_reset_parameters_button()
 
@@ -620,30 +614,115 @@ class HTLSManager(GeneralPlugin):
 	def link_master(self, master):
 		self.font.selectedFontMaster.userData["HTLSManagerLinkedMaster"] = master.id
 		self.areaSettings.ui_update(master.id, master.customParameters["paramArea"],
-		                                          int(master.customParameters["paramArea"]) - 100,
-		                                          int(master.customParameters["paramArea"]) + 100)
-		self.depthSettings.ui_update(master.id, master.customParameters["paramDepth"], 1, 20)
+		                            int(master.customParameters["paramArea"]) - 100,
+		                            int(master.customParameters["paramArea"]) + 100)
+		self.depthSettings.ui_update(master.id, master.customParameters["paramDepth"])
 		self.depthSettings.master_id = self.currentMasterID
 
 	@objc.python_method
 	def interpolate_parameters_callback(self, sender):
-		self.interpolate_sheet = Sheet((200, 200), self.w)
-		self.interpolate_sheet.closeButton = Button("auto", "Under construction...",
-		                                            callback=self.close_interpolate_sheet)
+		self.interpolation_masters = [master for master in self.font.masters if master is not
+		                              self.font.selectedFontMaster]
+		self.interpolation_sheet = Sheet((240, 220), self.w)
 
-		sheet_rules = [
-			"H:|-[closeButton]-|",
-			"V:|-[closeButton]-|",
+		self.interpolation_sheet.axis = Group("auto")
+		# add a title and popup button to select the axis to interpolate on
+		self.interpolation_sheet.axis.title = TextBox("auto", "Interpolation axis")
+		self.interpolation_sheet.axis.select = PopUpButton("auto", [axis.name for axis in self.font.axes])
+
+		# add two titles and popups to select the master to interpolate from and to
+		self.interpolation_sheet.masterOne = Group("auto")
+		self.interpolation_sheet.masterOne.title = TextBox("auto", "First master")
+		self.interpolation_sheet.masterOne.select = PopUpButton("auto", [master.name for
+		                                                                 master in self.interpolation_masters])
+		self.interpolation_sheet.masterTwo = Group("auto")
+		self.interpolation_sheet.masterTwo.title = TextBox("auto", "Second master")
+		self.interpolation_sheet.masterTwo.select = PopUpButton("auto", [master.name for
+		                                                                 master in self.interpolation_masters])
+
+		# only enable the second master popup if there is more than one master
+		self.interpolation_sheet.masterTwo.select.enable(len(self.interpolation_masters) > 1)
+		# set the second master selection to the second master in the font
+		if len(self.interpolation_masters) > 1:
+			self.interpolation_sheet.masterTwo.select.set(1)
+
+		# add a divider
+		self.interpolation_sheet.divider = HorizontalLine("auto")
+
+		# add a button to close the window
+		self.interpolation_sheet.closeButton = Button("auto", "Close", callback=self.close_interpolation_sheet)
+		self.interpolation_sheet.doneButton = Button("auto",
+		                                             "Interpolate parameters",
+		                                             callback=self.interpolate_parameters)
+
+		self.interpolation_sheet.setDefaultButton(self.interpolation_sheet.doneButton)
+
+		group_rules = [
+			"H:|[title]-margin-[select(80)]|",
+			"V:|[title]",
+			"V:|[select]|",
 		]
 
-		self.interpolate_sheet.addAutoPosSizeRules(sheet_rules)
+		sheet_rules = [
+			"H:|-margin-[axis]-margin-|",
+			"H:|-margin-[masterOne]-margin-|",
+			"H:|-margin-[masterTwo]-margin-|",
+			"H:|-margin-[divider]-margin-|",
+			"H:|-margin-[closeButton]",
+			"H:[doneButton]-margin-|",
+			"V:|-margin-[axis]-margin-[masterOne]-margin-[masterTwo]-margin-[divider]-margin-[doneButton]-margin-|",
+			"V:[closeButton]-margin-|",
+		]
+		try:
+			self.interpolation_sheet.axis.addAutoPosSizeRules(group_rules, self.metrics)
+			self.interpolation_sheet.masterOne.addAutoPosSizeRules(group_rules, self.metrics)
+			self.interpolation_sheet.masterTwo.addAutoPosSizeRules(group_rules, self.metrics)
+			self.interpolation_sheet.addAutoPosSizeRules(sheet_rules, self.metrics)
+		except:
+			import traceback
+			print(traceback.format_exc())
 
-		self.interpolate_sheet.open()
+		self.interpolation_sheet.open()
 
 	@objc.python_method
-	def close_interpolate_sheet(self, sender):
-		self.interpolate_sheet.close()
-		del self.interpolate_sheet
+	def interpolate_parameters(self, sender):
+		axis_index = self.interpolation_sheet.axis.select.get()
+		master_one = self.interpolation_masters[self.interpolation_sheet.masterOne.select.get()]
+		master_two = self.interpolation_masters[self.interpolation_sheet.masterTwo.select.get()]
+
+		if master_two == master_one:
+			Message(title="Two masters needed", message="Please select two different masters.")
+		else:
+			# interpolate the parameters paramArea and paramDepth between the two masters using the master values of
+			# the axis selected previously
+			master_one_axis_value = master_one.axes[axis_index]
+			master_two_axis_value = master_two.axes[axis_index]
+			target_master_axis_value = self.font.selectedFontMaster.axes[axis_index]
+			# get the interpolation factor
+			factor = (target_master_axis_value - master_one_axis_value) / (
+						master_two_axis_value - master_one_axis_value)
+
+			for parameter in ["paramArea", "paramDepth"]:
+				# get the master values of the axis
+				master_one_value = master_one.customParameters[parameter]
+				master_two_value = master_two.customParameters[parameter]
+				# get the new value of the parameter
+				new_value = master_one_value + (factor * (master_two_value - master_one_value))
+				self.font.selectedFontMaster.customParameters[parameter] = int(new_value)
+
+			self.areaSettings.ui_update(self.font.selectedFontMaster.id,
+			                            self.font.selectedFontMaster.customParameters["paramArea"],
+			                            self.font.selectedFontMaster.customParameters["paramArea"] - 100,
+			                            self.font.selectedFontMaster.customParameters["paramArea"] + 100)
+			self.depthSettings.ui_update(self.font.selectedFontMaster.id,
+			                             self.font.selectedFontMaster.customParameters["paramDepth"])
+
+		self.close_interpolation_sheet()
+
+	@objc.python_method
+	def close_interpolation_sheet(self, sender=None):
+		self.interpolation_sheet.close()
+		del self.interpolation_sheet
 
 	@objc.python_method
 	def switch_tabs(self, sender, tab_index=None):
@@ -703,7 +782,7 @@ class HTLSManager(GeneralPlugin):
 	@objc.python_method
 	def action_button_items(self):
 		action_items = [
-			dict(title="Link master to... (Under construction)", items=[
+			dict(title="Copy parameters from...", items=[
 				dict(title=master.name, callback=self.link_master_callback)
 				for master in self.font.masters if master is not self.font.selectedFontMaster]
 			     ),
@@ -748,9 +827,9 @@ class HTLSManager(GeneralPlugin):
 			if not layer_lsb or not layer_rsb:
 				continue
 			if self.live_preview:
-					layer.LSB = layer_lsb
-					layer.RSB = layer_rsb
-					self.font.currentTab.forceRedraw()
+				layer.LSB = layer_lsb
+				layer.RSB = layer_rsb
+				self.font.currentTab.forceRedraw()
 			if layer.parent.name == self.leftGlyphView.glyph.name:
 				self.parametersTab.leftGlyphView.currentLeftSideBearing.set(layer_lsb)
 				self.parametersTab.leftGlyphView.currentRightSideBearing.set(layer_rsb)
