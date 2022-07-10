@@ -189,7 +189,7 @@ class HTLSParameterSlider:
 			self.slider_group.slider.setMinValue(self.min_value)
 			self.slider_group.slider.setMaxValue(self.max_value)
 
-	def ui_update(self, master_id, current_value, min_value, max_value):
+	def ui_update(self, master_id, current_value, min_value=0, max_value=20):
 		self.master_id = master_id
 		self.slider_group.slider.setMinValue(min_value)
 		self.slider_group.slider.setMaxValue(max_value)
