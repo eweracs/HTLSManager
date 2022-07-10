@@ -314,12 +314,14 @@ class HTLSEngine:
 			print(traceback.format_exc())
 
 	def calculate_polygons(self):
-		if not self.layer.name \
-				or len(self.layer.components) + len(self.layer.paths) == 0 \
-				or self.layer.hasAlignedWidth() \
-				or self.layer.parent.leftMetricsKey \
-				or self.layer.parent.rightMetricsKey \
-				or "fraction" in self.layer.parent.name:
+		if not self.layer.name or len(self.layer.components) + len(self.layer.paths) == 0:
+			return
+		elif self.layer.hasAlignedWidth() or self.layer.parent.leftMetricsKey or self.layer.parent.rightMetricsKey:
+			self.output = "Glyph %s has aligned width or metrics keys. Skipping." \
+			              "\n__________________\n" % self.layer.parent.name
+			return
+		elif "fraction" in self.layer.parent.name:
+			self.output = "Glyph fraction should be spaced manually. Skipping.\n__________________\n"
 			return
 
 		# Decompose layer for analysis, as the deeper plumbing assumes to be looking at outlines.
