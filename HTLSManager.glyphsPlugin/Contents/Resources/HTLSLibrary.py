@@ -14,8 +14,8 @@ paramFreq = 5
 
 # Functions
 def set_sidebearings(layer, new_l, new_r, width):
-	layer.LSB = new_l
-	layer.RSB = new_r
+	layer.skip_LSB = new_l
+	layer.skip_RSB = new_r
 
 	# adjusts the tabular miscalculation
 	if width:
@@ -171,6 +171,7 @@ def read_config(font):
 class HTLSEngine:
 
 	def __init__(self, layer, parent=None):
+		self.categories = ["Letter", "Number", "Punctuation", "Symbol", "Mark"]
 		self.parent = parent
 		self.font = layer.parent.parent
 		self.master = layer.master
@@ -186,10 +187,10 @@ class HTLSEngine:
 		self.tabVersion = False
 		self.newWidth = False
 		self.width = None
-		self.LSB = None
-		self.RSB = None
-		self.paramArea = self.master.customParameters["paramArea"] or 400
-		self.paramDepth = self.master.customParameters["paramDepth"] or 12
+		self.skip_LSB = None
+		self.skip_RSB = None
+		self.paramArea = int(self.master.customParameters["paramArea"]) or 400
+		self.paramDepth = int(self.master.customParameters["paramDepth"]) or 12
 		self.paramOver = 0  # self.master.customParameters["paramOver"] or 0
 		self.paramFreq = 5
 		self.xHeight = int(self.master.xHeight)
@@ -208,11 +209,10 @@ class HTLSEngine:
 		if self.rule:
 			self.factor = float(self.rule["value"])
 			reference_glyph = self.font.glyphs[self.rule["referenceGlyph"]]
-			self.reference_layer = reference_glyph.layers[self.layer.associatedMasterId] or self.layer
+			if reference_glyph:
+				self.reference_layer = reference_glyph.layers[self.layer.associatedMasterId]
 
-		self.output += "Reference: %s\nFactor: %s\n__________________\n" % (
-			self.reference_layer.parent.name, float(self.factor)
-		)
+		self.output += "Reference: %s\nFactor: %s\n" % (self.reference_layer.parent.name, float(self.factor))
 
 		if parent:
 			if self.parent.leftGlyphView.glyph.name == self.layer.parent.name:
@@ -226,6 +226,8 @@ class HTLSEngine:
 		case = self.layer.parent.case
 		name = self.layer.parent.name
 
+		if category not in self.categories:
+			return None
 		rule = None
 		for rule_id in self.config[category]:
 			if subcategory == self.config[category][rule_id]["subcategory"] \
@@ -316,14 +318,20 @@ class HTLSEngine:
 	def calculate_polygons(self):
 		if not self.layer.name or len(self.layer.components) + len(self.layer.paths) == 0:
 			return
-		elif self.layer.hasAlignedWidth() or self.layer.parent.leftMetricsKey or self.layer.parent.rightMetricsKey:
-			self.output = "Glyph %s has aligned width or metrics keys. Skipping." \
-			              "\n__________________\n" % self.layer.parent.name
+		elif self.layer.hasAlignedWidth():
+			self.output = "Glyph %s has aligned width. Skipping.\n__________________\n" % self.layer.parent.name
 			return
+		elif self.layer.parent.leftMetricsKey:
+			self.skip_LSB = True
+			self.output += "Glyph %s has left metrics key." % self.layer.parent.name
+		elif self.layer.parent.rightMetricsKey:
+			self.skip_RSB = True
+			self.output += "Glyph %s has right metrics key." % self.layer.parent.name
 		elif "fraction" in self.layer.parent.name:
 			self.output = "Glyph fraction should be spaced manually. Skipping.\n__________________\n"
 			return
 
+		self.output += "\n__________________\n"
 		# Decompose layer for analysis, as the deeper plumbing assumes to be looking at outlines.
 		layer_decomposed = self.layer.copyDecomposedLayer()
 		layer_decomposed.parent = self.layer.parent
@@ -403,10 +411,10 @@ class HTLSEngine:
 
 		# if there is a metric rule
 		else:
-			if self.layer.parent.leftMetricsKey is not None or self.LSB is False:
+			if self.layer.parent.leftMetricsKey is not None or self.skip_LSB:
 				self.newL = self.layer.LSB
 
-			if self.layer.parent.rightMetricsKey is not None or self.RSB is False:
+			if self.layer.parent.rightMetricsKey is not None or self.skip_RSB:
 				self.newR = self.layer.RSB
 
 			return self.newL, self.newR
