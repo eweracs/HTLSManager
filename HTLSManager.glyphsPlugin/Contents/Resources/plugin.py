@@ -12,8 +12,7 @@ from HTLSConfigConverter import *
 from HTLSLibrary import *
 
 
-# TODO: Sync rules/parameters from master
-# TODO: Set master to interpolate from masters
+# TODO: Add a glyph inspector tab, with option to write new rules to font
 # TODO: make rebuilding of UI faster
 # TODO: Write autospace.py file
 # TODO: detect conflicting rules
@@ -47,8 +46,8 @@ class HTLSManager(GeneralPlugin):
 
 		self.parameters_dict = {
 			master.id: {
-				"paramArea": master.customParameters["paramArea"] or 400,
-				"paramDepth": master.customParameters["paramDepth"] or 10,
+				"paramArea": int(master.customParameters["paramArea"]) or 400,
+				"paramDepth": int(master.customParameters["paramDepth"]) or 10,
 			} for master in self.font.masters
 		}
 
@@ -335,14 +334,15 @@ class HTLSManager(GeneralPlugin):
 			self.font.selectedFontMaster.id,
 			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"]),
 			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"]) - 100,
-			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"]) + 100
-		)
+			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramArea"]) + 100)
 
 		self.depthSettings = HTLSParameterSlider(
 			self,
 			"paramDepth",
 			self.font.selectedFontMaster.id,
-			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramDepth"]))
+			int(self.parameters_dict[self.font.selectedFontMaster.id]["paramDepth"]),
+			1,
+			20)
 
 		self.parametersTab.areaSettings = self.areaSettings.slider_group
 		self.parametersTab.depthSettings = self.depthSettings.slider_group
@@ -498,6 +498,7 @@ class HTLSManager(GeneralPlugin):
 
 						# update the text fields in the master tab
 						if key == "subcategory":
+							self.font_rules[category][rule][key] = self.sub_categories[category][sender.get()]
 							self.master_rules_groups[rule].subcategory.set(self.sub_categories[category][sender.get()])
 						elif key == "case":
 							self.master_rules_groups[rule].case.set(self.cases[sender.get()])
@@ -580,8 +581,8 @@ class HTLSManager(GeneralPlugin):
 	def save_parameters(self, sender):
 		self.parameters_dict = {
 			master.id: {
-				"paramArea": master.customParameters["paramArea"] or 400,
-				"paramDepth": master.customParameters["paramDepth"] or 10,
+				"paramArea": int(master.customParameters["paramArea"]) or 400,
+				"paramDepth": int(master.customParameters["paramDepth"]) or 10,
 			} for master in self.font.masters
 		}
 		self.update_parameter_ui()
@@ -616,7 +617,7 @@ class HTLSManager(GeneralPlugin):
 		self.areaSettings.ui_update(master.id, master.customParameters["paramArea"],
 		                            int(master.customParameters["paramArea"]) - 100,
 		                            int(master.customParameters["paramArea"]) + 100)
-		self.depthSettings.ui_update(master.id, master.customParameters["paramDepth"])
+		self.depthSettings.ui_update(master.id, int(master.customParameters["paramDepth"]))
 		self.depthSettings.master_id = self.currentMasterID
 
 	@objc.python_method
@@ -704,18 +705,18 @@ class HTLSManager(GeneralPlugin):
 
 			for parameter in ["paramArea", "paramDepth"]:
 				# get the master values of the axis
-				master_one_value = master_one.customParameters[parameter]
-				master_two_value = master_two.customParameters[parameter]
+				master_one_value = int(master_one.customParameters[parameter])
+				master_two_value = int(master_two.customParameters[parameter])
 				# get the new value of the parameter
 				new_value = master_one_value + (factor * (master_two_value - master_one_value))
 				self.font.selectedFontMaster.customParameters[parameter] = int(new_value)
 
 			self.areaSettings.ui_update(self.font.selectedFontMaster.id,
-			                            self.font.selectedFontMaster.customParameters["paramArea"],
-			                            self.font.selectedFontMaster.customParameters["paramArea"] - 100,
-			                            self.font.selectedFontMaster.customParameters["paramArea"] + 100)
+			                            int(self.font.selectedFontMaster.customParameters["paramArea"]),
+			                            int(self.font.selectedFontMaster.customParameters["paramArea"]) - 100,
+			                            int(self.font.selectedFontMaster.customParameters["paramArea"]) + 100)
 			self.depthSettings.ui_update(self.font.selectedFontMaster.id,
-			                             self.font.selectedFontMaster.customParameters["paramDepth"])
+			                             int(self.font.selectedFontMaster.customParameters["paramDepth"]))
 
 		self.close_interpolation_sheet()
 
@@ -795,7 +796,7 @@ class HTLSManager(GeneralPlugin):
 	def toggle_reset_parameters_button(self):
 		# check whether the area and depth rules match the saved settings, only if not, enable the reset button
 		for parameter in ["paramArea", "paramDepth"]:
-			if self.font.selectedFontMaster.customParameters[parameter] != \
+			if int(self.font.selectedFontMaster.customParameters[parameter]) != \
 					self.parameters_dict[self.currentMasterID][parameter]:
 				self.parametersTab.resetParameters.enable(True)
 				break
@@ -839,9 +840,11 @@ class HTLSManager(GeneralPlugin):
 
 	@objc.python_method
 	def load_profile(self, sender):
-		if sender.getItem() in self.user_profiles:
-			new_rules = self.user_profiles[sender.getItem()]
+		profile_name = sender.getItem()
+		if profile_name in self.user_profiles:
+			new_rules = self.user_profiles[profile_name]
 			self.rebuild_font_rules(new_rules)
+			self.fontRulesTab.profiles.selector.setItem(profile_name)
 			self.font_rules = new_rules
 			self.write_font_rules()
 
@@ -861,7 +864,7 @@ class HTLSManager(GeneralPlugin):
 		if profile_name and len(profile_name) > 0:
 			if profile_name in self.user_profiles:
 				if not dialogs.askYesNo(messageText="Overwrite profile?",
-				                        informativeText="Profile '%s' already exists." % profile_name):
+				                        informativeText="Profile \"%s\" already exists." % profile_name):
 					return
 				else:
 					self.user_profiles[profile_name] = self.font_rules
