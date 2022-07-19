@@ -46,8 +46,8 @@ class HTLSManager(GeneralPlugin):
 
 		self.parameters_dict = {
 			master.id: {
-				"paramArea": int(master.customParameters["paramArea"]) or 400,
-				"paramDepth": int(master.customParameters["paramDepth"]) or 10,
+				"paramArea": int(master.customParameters["paramArea"] or 400),
+				"paramDepth": int(master.customParameters["paramDepth"] or 10)
 			} for master in self.font.masters
 		}
 
@@ -581,8 +581,8 @@ class HTLSManager(GeneralPlugin):
 	def save_parameters(self, sender):
 		self.parameters_dict = {
 			master.id: {
-				"paramArea": int(master.customParameters["paramArea"]) or 400,
-				"paramDepth": int(master.customParameters["paramDepth"]) or 10,
+				"paramArea": int(master.customParameters["paramArea"] or 400),
+				"paramDepth": int(master.customParameters["paramDepth"] or 10),
 			} for master in self.font.masters
 		}
 		self.update_parameter_ui()
