@@ -227,16 +227,46 @@ class HTLSEngine:
 		name = self.layer.parent.name
 
 		if category not in self.categories:
-			return None
+			return
+
 		rule = None
-		for rule_id in self.config[category]:
-			if subcategory == self.config[category][rule_id]["subcategory"] \
-					or self.config[category][rule_id]["subcategory"] == "Any":
-				if case == self.config[category][rule_id]["case"] or self.config[category][rule_id]["case"] == "Any":
-					if self.config[category][rule_id]["filter"] in name:
-						rule = dict(self.config[category][rule_id])
-						if self.master_rules and rule_id in self.master_rules:
-							rule["value"] = self.master_rules[rule_id]
+		rule_id = None
+
+		for id in self.config[category]:
+			# check for rules with specified subcategory and case
+			if subcategory == self.config[category][id]["subcategory"] \
+					and case == self.config[category][id]["case"] \
+					and self.config[category][id]["filter"] in name:
+				rule = dict(self.config[category][id])
+				rule_id = id
+				break
+			# check for rules with unspecified subcategory and specified case
+			if self.config[category][id]["subcategory"] == "Any":
+				if case == self.config[category][id]["case"]:
+					if self.config[category][id]["filter"] in name:
+						rule = dict(self.config[category][id])
+						rule_id = id
+						break
+				# check for rules with unspecified subcategory and unspecified case
+				if self.config[category][id]["case"] == "Any":
+					if self.config[category][id]["filter"] in name:
+						rule = dict(self.config[category][id])
+						rule_id = id
+						break
+
+		if rule_id and self.master_rules and rule_id in self.master_rules:
+			rule["value"] = self.master_rules[rule_id]
+
+		# if no rule was found, check for rules with unspecified subcategory and case
+		if not rule:
+			for id in self.config[category]:
+				if self.config[category][id]["subcategory"] == "Any" \
+						and self.config[category][id]["case"] == 0 \
+						and self.config[category][id]["filter"] in name:
+					rule = dict(self.config[category][id])
+					if self.master_rules and id in self.master_rules:
+						rule["value"] = self.master_rules[id]
+					break
 		if rule:
 			self.output += "Found spacing rule\n"
 		else:
@@ -384,7 +414,7 @@ class HTLSEngine:
 		self.l_polygon, self.r_polygon = self.process_margins(l_zone_margins, r_zone_margins, l_extreme, r_extreme)
 
 		return self.l_polygon, self.r_polygon
-	
+
 	def current_layer_sidebearings(self):
 		if not self.calculate_polygons():
 			return
