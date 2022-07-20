@@ -11,6 +11,7 @@ class HTLSGlyphView:
 		self.glyphs = glyphs
 		self.glyph = glyphs[glyph_name]
 		self.master = master
+		self.layer = self.glyph.layers[master.id]
 		# add a group with the following elements: a GlyphView, a ComboBox to select the glyph, one text bow each
 		# to show the current left side bearing and right side bearing
 		self.view_group = Group("auto")
@@ -40,29 +41,8 @@ class HTLSGlyphView:
 		                                                  alignment="right"
 		                                                  )
 
-		self.view_group.glyphInfo = Group("auto")
-		self.view_group.glyphInfo.category = TextBox("auto",
-		                                             "Category: %s" % self.glyph.category,
-		                                             sizeStyle="small")
-		self.view_group.glyphInfo.subCategory = TextBox("auto",
-		                                                "Subcategory: %s" % self.glyph.subCategory,
-		                                                sizeStyle="small")
-		self.view_group.glyphInfo.case = TextBox("auto",
-		                                         "Case: %s" % self.parent.cases[self.glyph.case],
-		                                         sizeStyle="small")
-		self.view_group.glyphInfo.factor = TextBox("auto", "Factor: 1.0", sizeStyle="small")
-
-		self.set_exception_factor(self.master)
-
-		info_rules = [
-			"H:|-margin-[category]",
-			"H:|-margin-[subCategory]",
-			"H:|-margin-[case]",
-			"H:|-margin-[factor]",
-			"V:|-margin-[category]-[subCategory]-[case]-[factor]|",
-		]
-
-		self.view_group.glyphInfo.addAutoPosSizeRules(info_rules, self.parent.metrics)
+		self.glyphInfo = HTLSGlyphInfo(self.parent, glyph_name, self.glyphs, self.master)
+		self.view_group.glyphInfo = self.glyphInfo.info_group
 
 		# add rules to the glyph view groups
 		view_group_rules = [
@@ -101,7 +81,8 @@ class HTLSGlyphView:
 		self.view_group.glyphInfo.subCategory.set("Subcategory: %s" % self.glyph.subCategory)
 		self.view_group.glyphInfo.case.set("Case: %s" % self.parent.cases[self.glyph.case])
 
-		self.set_exception_factor(self.master)
+		self.glyphInfo.layer = self.glyph.layers[self.master.id]
+		self.glyphInfo.set_exception_factor()
 
 	def update_layer(self, master):
 		self.master = master
@@ -118,10 +99,45 @@ class HTLSGlyphView:
 		self.view_group.currentLeftSideBearing.set(self.glyph.layers[self.master.id].LSB)
 		self.view_group.currentRightSideBearing.set(self.glyph.layers[self.master.id].RSB)
 
-	def set_exception_factor(self, master):
-		rule = HTLSEngine(self.glyph.layers[self.master.id]).find_exception()
+
+class HTLSGlyphInfo:
+	def __init__(self, parent, glyph_name, glyphs, master):
+		self.parent = parent
+		self.glyphs = glyphs
+		self.glyph = glyphs[glyph_name]
+		self.master = master
+		self.layer = self.glyph.layers[master.id]
+
+		self.info_group = Group("auto")
+		self.info_group.category = TextBox("auto",
+		                                   "Category: %s" % self.glyph.category,
+		                                   sizeStyle="small")
+		self.info_group.subCategory = TextBox("auto",
+		                                      "Subcategory: %s" % self.glyph.subCategory,
+		                                      sizeStyle="small")
+		self.info_group.case = TextBox("auto",
+		                               "Case: %s" % self.parent.cases[self.glyph.case],
+		                               sizeStyle="small")
+		self.info_group.factor = TextBox("auto", "Factor: 1.0", sizeStyle="small")
+
+		self.set_exception_factor()
+
+		info_rules = [
+			"H:|-margin-[category]",
+			"H:|-margin-[subCategory]",
+			"H:|-margin-[case]",
+			"H:|-margin-[factor]",
+			"V:|-margin-[category]-[subCategory]-[case]-[factor]|",
+		]
+
+		self.info_group.addAutoPosSizeRules(info_rules, self.parent.metrics)
+
+	def set_exception_factor(self):
+		rule = HTLSEngine(self.layer).find_exception()
 		if rule:
-			self.view_group.glyphInfo.factor.set("Factor: %s" % float(rule["value"]))
+			self.info_group.factor.set("Factor: %s" % float(rule["value"]))
+		else:
+			self.info_group.factor.set("Factor: 1.0")
 
 
 class HTLSParameterSlider:
