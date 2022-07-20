@@ -159,11 +159,14 @@ class HTLSManager(GeneralPlugin):
 			"margin": 10
 		}
 
-		self.w.tabs = Tabs("auto", ["Font rules", "Master rules", "Parameters"], callback=self.switch_tabs)
+		self.w.tabs = Tabs("auto",
+		                   ["Font rules", "Master rules", "Parameters", "Glyph inspector"],
+		                   callback=self.switch_tabs)
 
 		self.fontRulesTab = self.w.tabs[0]
 		self.masterRulesTab = self.w.tabs[1]
 		self.parametersTab = self.w.tabs[2]
+		self.glyphInspectorTab = self.w.tabs[3]
 
 		#########################
 		#                       #
@@ -387,6 +390,54 @@ class HTLSManager(GeneralPlugin):
 
 		self.parametersTab.addAutoPosSizeRules(parameters_tab_rules, self.metrics)
 
+		#########################
+		#                       #
+		#    Inspector tab      #
+		#                       #
+		#########################
+
+		self.glyphInspectorTab.title = TextBox("auto", "Glyph Inspector")
+		self.glyphInspectorTab.masterName = TextBox("auto",
+		                                            "Master: %s" % self.font.selectedFontMaster.name,
+		                                            alignment="right")
+
+		# add a GlyphView to the Inspector tab, which always shows the currently selected glyph
+		self.glyphInfo = HTLSGlyphInfo(self, "n", self.font.glyphs, self.font.selectedFontMaster)
+
+		self.glyphInspectorTab.inspector = Group("auto")
+		self.glyphInspectorTab.inspector.glyphView = GlyphView("auto",
+		                                                       layer=None,
+		                                                       backgroundColor=NSColor.clearColor())
+		self.glyphInspectorTab.inspector.glyphName = TextBox("auto", "")
+		self.glyphInspectorTab.inspector.glyphInfo = self.glyphInfo.info_group
+		self.glyphInspectorTab.inspector.infoText = TextBox("auto", "", alignment="center")
+		self.glyphInspectorTab.inspector.paddingTop = Group("auto")
+		self.glyphInspectorTab.inspector.paddingBottom = Group("auto")
+
+		inspector_group_rules = [
+			"H:|[glyphView(200)]-margin-[glyphInfo(200)]|",
+			"H:[glyphName(190)]|",
+			"H:|[infoText(200)]",
+			"V:|[glyphView(200)]|",
+			"V:|[paddingTop]-[infoText]-[paddingBottom(==paddingTop)]|",
+			"V:|[glyphName]-margin-[glyphInfo]"
+		]
+
+		self.glyphInspectorTab.inspector.addAutoPosSizeRules(inspector_group_rules, self.metrics)
+
+		inspector_tab_rules = [
+			"H:|-margin-[title]",
+			"H:[masterName]-margin-|",
+			"H:|-margin-[inspector]-margin-|",
+			"V:|-margin-[title]-margin-[inspector]-margin-|",
+			"V:|-margin-[masterName]"
+		]
+
+		self.glyphInspectorTab.addAutoPosSizeRules(inspector_tab_rules, self.metrics)
+		self.update_inspector_view()
+
+		################################################################################################################
+
 		rules = [
 			"H:|-margin-[tabs]-margin-|",
 			"V:|-margin-[tabs]-margin-|",
@@ -463,8 +514,8 @@ class HTLSManager(GeneralPlugin):
 
 		self.write_font_rules()
 
-		self.leftGlyphView.set_exception_factor(self.font.selectedFontMaster)
-		self.rightGlyphView.set_exception_factor(self.font.selectedFontMaster)
+		self.leftGlyphView.glyphInfo.set_exception_factor()
+		self.rightGlyphView.glyphInfo.set_exception_factor()
 		self.fontRulesTab.profiles.selector.setItem("Choose...")
 
 	@objc.python_method
@@ -509,8 +560,8 @@ class HTLSManager(GeneralPlugin):
 
 		self.write_font_rules()
 
-		self.leftGlyphView.set_exception_factor(self.font.selectedFontMaster)
-		self.rightGlyphView.set_exception_factor(self.font.selectedFontMaster)
+		self.leftGlyphView.glyphInfo.set_exception_factor()
+		self.rightGlyphView.glyphInfo.set_exception_factor()
 
 	@objc.python_method
 	def rebuild_font_rules(self, new_rules):
@@ -544,8 +595,8 @@ class HTLSManager(GeneralPlugin):
 					self.master_rules_groups[rule].resetButton.enable(False)
 				break
 
-		self.leftGlyphView.set_exception_factor(self.font.selectedFontMaster)
-		self.rightGlyphView.set_exception_factor(self.font.selectedFontMaster)
+		self.leftGlyphView.glyphInfo.set_exception_factor()
+		self.rightGlyphView.glyphInfo.set_exception_factor()
 
 	@objc.python_method
 	def reset_master_rule(self, sender):
@@ -557,8 +608,8 @@ class HTLSManager(GeneralPlugin):
 				del self.font.selectedFontMaster.userData["HTLSManagerMasterRules"][rule]
 				break
 
-		self.leftGlyphView.set_exception_factor(self.font.selectedFontMaster)
-		self.rightGlyphView.set_exception_factor(self.font.selectedFontMaster)
+		self.leftGlyphView.glyphInfo.set_exception_factor()
+		self.rightGlyphView.glyphInfo.set_exception_factor()
 
 	@objc.python_method
 	def write_font_rules(self):
@@ -748,8 +799,8 @@ class HTLSManager(GeneralPlugin):
 
 			self.parametersTab.masterOptions.setItems(self.action_button_items())
 			self.update_parameter_ui()
-			self.leftGlyphView.set_exception_factor(self.font.selectedFontMaster)
-			self.rightGlyphView.set_exception_factor(self.font.selectedFontMaster)
+			self.leftGlyphView.glyphInfo.set_exception_factor()
+			self.rightGlyphView.glyphInfo.set_exception_factor()
 
 			# read the current master's user data and update all fields in the master rules tab accordingly
 			for category in self.categories:
@@ -779,6 +830,39 @@ class HTLSManager(GeneralPlugin):
 		if self.w.tabs.get() == 2:
 			self.leftGlyphView.update_sidebearings(self.font.selectedFontMaster)
 			self.rightGlyphView.update_sidebearings(self.font.selectedFontMaster)
+		if self.w.tabs.get() == 3:
+			self.update_inspector_view()
+
+	@objc.python_method
+	def update_inspector_view(self):
+		if not self.font.selectedLayers:
+			self.glyphInspectorTab.inspector.infoText.set("No layer selected")
+			self.glyphInspectorTab.inspector.glyphView.layer = None
+			# set all the descriptions in the glyph info to empty
+			self.glyphInspectorTab.inspector.glyphName.set("(None)")
+			self.glyphInspectorTab.inspector.glyphInfo.category.set("Category:")
+			self.glyphInspectorTab.inspector.glyphInfo.subCategory.set("Subcategory:")
+			self.glyphInspectorTab.inspector.glyphInfo.case.set("Case:")
+			self.glyphInspectorTab.inspector.glyphInfo.factor.set("Factor:")
+		else:
+			if len(self.font.selectedLayers) > 1:
+				self.glyphInspectorTab.inspector.infoText.set("Multiple layers selected")
+				self.glyphInspectorTab.inspector.glyphView.layer = None
+				self.glyphInspectorTab.inspector.glyphName.set("(Multiple)")
+				self.glyphInspectorTab.inspector.glyphInfo.category.set("Category:")
+				self.glyphInspectorTab.inspector.glyphInfo.subCategory.set("Subcategory:")
+				self.glyphInspectorTab.inspector.glyphInfo.case.set("Case:")
+				self.glyphInspectorTab.inspector.glyphInfo.factor.set("Factor:")
+			if len(self.font.selectedLayers) == 1:
+				layer = self.font.selectedLayers[0]
+				self.glyphInspectorTab.inspector.infoText.set("")
+				self.glyphInspectorTab.inspector.glyphView.layer = layer
+				self.glyphInspectorTab.inspector.glyphName.set(layer.parent.name)
+				self.glyphInspectorTab.inspector.glyphInfo.category.set("Category: %s" % layer.parent.category)
+				self.glyphInspectorTab.inspector.glyphInfo.subCategory.set("Subcategory: %s" % layer.parent.subCategory)
+				self.glyphInspectorTab.inspector.glyphInfo.case.set("Case: %s" % self.cases[layer.parent.case])
+				self.glyphInfo.layer = layer
+				self.glyphInfo.set_exception_factor()
 
 	@objc.python_method
 	def action_button_items(self):
