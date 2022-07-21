@@ -510,11 +510,11 @@ class HTLSManager(GeneralPlugin):
 			self.font_rules[category][rule_id] = font_rules[category][rule_id]
 		else:
 			self.font_rules[category][rule_id] = {
-				"subcategory": "Any",
-				"case": 0,
-				"value": 1,
-				"referenceGlyph": "",
-				"filter": ""
+				"subcategory": subcategory,
+				"case": case,
+				"filter": filter,
+				"referenceGlyph": reference_glyph,
+				"value": factor,
 			}
 
 		# find the stack view for the category and add a font rule in the font view, and a master rule in the
@@ -1017,6 +1017,7 @@ class HTLSManager(GeneralPlugin):
 			if self.live_preview:
 				layer.LSB = layer_lsb
 				layer.RSB = layer_rsb
+				layer.syncMetrics()
 				self.font.currentTab.forceRedraw()
 			if layer.parent.name == self.leftGlyphView.glyph.name:
 				self.parametersTab.leftGlyphView.currentLeftSideBearing.set(layer_lsb)
