@@ -233,7 +233,7 @@ class HTLSFontRuleGroup:
 		self.rule_group.case = PopUpButton("auto", self.parent.cases, callback=self.parent.update_font_rule)
 		self.rule_group.value = EditText("auto",
 		                                 continuous=False,
-		                                 text=str(round(self.current_rule["value"], 2)).replace(",", "."),
+		                                 text=str(round(float(self.current_rule["value"]), 2)).replace(",", "."),
 		                                 callback=self.parent.update_font_rule)
 		self.rule_group.filter = EditText("auto",
 		                                  continuous=False,
@@ -293,7 +293,7 @@ class HTLSMasterRuleGroup:
 		self.rule_group.value = EditText("auto",
 		                                 continuous=False,
 		                                 text="",
-		                                 placeholder=str(round(self.current_rule["value"], 2)).replace(",", "."),
+		                                 placeholder=str(round(float(self.current_rule["value"]), 2)).replace(",", "."),
 		                                 callback=self.parent.update_master_rule)
 		self.rule_group.resetButton = Button("auto", "Reset", callback=self.parent.reset_master_rule)
 		self.rule_group.resetButton.enable(False)
