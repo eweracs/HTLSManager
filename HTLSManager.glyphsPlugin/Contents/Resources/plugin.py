@@ -878,12 +878,30 @@ class HTLSManager(GeneralPlugin):
 
 	@objc.python_method
 	def update_inspector_view(self):
-		try:
-			if not self.font.selectedLayers:
-				self.glyphInspectorTab.inspector.infoText.set("No layer selected")
+		if not self.font.selectedLayers:
+			self.glyphInspectorTab.inspector.infoText.set("No layer selected")
+			self.glyphInspectorTab.inspector.glyphView.layer = None
+			# set all the descriptions in the glyph info to empty
+			self.glyphInspectorTab.inspector.glyphName.set("(None)")
+			self.glyphInspectorTab.inspector.glyphInfo.category.set("Category:")
+			self.glyphInspectorTab.inspector.glyphInfo.subCategory.set("Subcategory:")
+			self.glyphInspectorTab.inspector.glyphInfo.case.set("Case:")
+			self.glyphInspectorTab.inspector.glyphInfo.factor.set("Factor:")
+
+			# set the add rule fields to empty
+			self.glyphInspectorTab.inspector.addRule.subCategory.select.setItems([])
+			self.glyphInspectorTab.inspector.addRule.subCategory.select.enable(False)
+			self.glyphInspectorTab.inspector.addRule.case.select.setItems([])
+			self.glyphInspectorTab.inspector.addRule.case.select.enable(False)
+			self.glyphInspectorTab.inspector.addRule.factor.select.set("")
+			self.glyphInspectorTab.inspector.addRule.factor.select.enable(False)
+			self.glyphInspectorTab.inspector.addRule.addButton.enable(False)
+
+		else:
+			if len(self.font.selectedLayers) > 1:
+				self.glyphInspectorTab.inspector.infoText.set("Multiple layers selected")
 				self.glyphInspectorTab.inspector.glyphView.layer = None
-				# set all the descriptions in the glyph info to empty
-				self.glyphInspectorTab.inspector.glyphName.set("(None)")
+				self.glyphInspectorTab.inspector.glyphName.set("(Multiple)")
 				self.glyphInspectorTab.inspector.glyphInfo.category.set("Category:")
 				self.glyphInspectorTab.inspector.glyphInfo.subCategory.set("Subcategory:")
 				self.glyphInspectorTab.inspector.glyphInfo.case.set("Case:")
@@ -898,56 +916,37 @@ class HTLSManager(GeneralPlugin):
 				self.glyphInspectorTab.inspector.addRule.factor.select.enable(False)
 				self.glyphInspectorTab.inspector.addRule.addButton.enable(False)
 
-			else:
-				if len(self.font.selectedLayers) > 1:
-					self.glyphInspectorTab.inspector.infoText.set("Multiple layers selected")
-					self.glyphInspectorTab.inspector.glyphView.layer = None
-					self.glyphInspectorTab.inspector.glyphName.set("(Multiple)")
-					self.glyphInspectorTab.inspector.glyphInfo.category.set("Category:")
-					self.glyphInspectorTab.inspector.glyphInfo.subCategory.set("Subcategory:")
-					self.glyphInspectorTab.inspector.glyphInfo.case.set("Case:")
-					self.glyphInspectorTab.inspector.glyphInfo.factor.set("Factor:")
+			if len(self.font.selectedLayers) == 1:
+				layer = self.font.selectedLayers[0]
+				self.glyphInspectorTab.inspector.infoText.set("")
+				self.glyphInspectorTab.inspector.glyphView.layer = layer
+				self.glyphInspectorTab.inspector.glyphName.set(layer.parent.name)
+				self.glyphInspectorTab.inspector.glyphInfo.category.set("Category: %s" % layer.parent.category)
+				self.glyphInspectorTab.inspector.glyphInfo.subCategory.set("Subcategory: %s" % layer.parent.subCategory)
+				self.glyphInspectorTab.inspector.glyphInfo.case.set("Case: %s" % self.cases[layer.parent.case])
+				self.InspectorTabGlyphInfo.layer = layer
+				self.InspectorTabGlyphInfo.set_exception_factor()
 
-					# set the add rule fields to empty
-					self.glyphInspectorTab.inspector.addRule.subCategory.select.setItems([])
-					self.glyphInspectorTab.inspector.addRule.subCategory.select.enable(False)
-					self.glyphInspectorTab.inspector.addRule.case.select.setItems([])
-					self.glyphInspectorTab.inspector.addRule.case.select.enable(False)
-					self.glyphInspectorTab.inspector.addRule.factor.select.set("")
-					self.glyphInspectorTab.inspector.addRule.factor.select.enable(False)
-					self.glyphInspectorTab.inspector.addRule.addButton.enable(False)
+				# set the add rule fields to the current layer values
+				# make a list with "Any" and the current layer's subcategory if the subcategory is not "None"
+				subcategory_list = ["Any"]
+				if layer.parent.subCategory:
+					subcategory_list.append(layer.parent.subCategory)
 
-				if len(self.font.selectedLayers) == 1:
-					layer = self.font.selectedLayers[0]
-					self.glyphInspectorTab.inspector.infoText.set("")
-					self.glyphInspectorTab.inspector.glyphView.layer = layer
-					self.glyphInspectorTab.inspector.glyphName.set(layer.parent.name)
-					self.glyphInspectorTab.inspector.glyphInfo.category.set("Category: %s" % layer.parent.category)
-					self.glyphInspectorTab.inspector.glyphInfo.subCategory.set("Subcategory: %s" % layer.parent.subCategory)
-					self.glyphInspectorTab.inspector.glyphInfo.case.set("Case: %s" % self.cases[layer.parent.case])
-					self.InspectorTabGlyphInfo.layer = layer
-					self.InspectorTabGlyphInfo.set_exception_factor()
-
-					# set the add rule fields to the current layer values
-					# make a list with "Any" and the current layer's subcategory if the subcategory is not "None"
-					subcategory_list = ["Any"]
-					if layer.parent.subCategory:
-						subcategory_list.insert(0, layer.parent.subCategory)
-
-					self.glyphInspectorTab.inspector.addRule.subCategory.select.setItems(subcategory_list)
-					self.glyphInspectorTab.inspector.addRule.subCategory.select.enable(True)
-					self.glyphInspectorTab.inspector.addRule.case.select.setItems(
-						[self.cases[layer.parent.case], "Any"]
-					)
-					self.glyphInspectorTab.inspector.addRule.case.select.enable(True)
-					self.glyphInspectorTab.inspector.addRule.factor.select.set(
-						self.glyphInspectorTab.inspector.glyphInfo.factor.get().replace("Factor: ", "")
-					)
-					self.glyphInspectorTab.inspector.addRule.factor.select.enable(True)
-					self.glyphInspectorTab.inspector.addRule.addButton.enable(True)
-		except:
-			import traceback
-			print(traceback.format_exc())
+				self.glyphInspectorTab.inspector.addRule.subCategory.select.setItems(subcategory_list)
+				if layer.parent.subCategory:
+					self.glyphInspectorTab.inspector.addRule.subCategory.select.setItem(layer.parent.subCategory)
+				self.glyphInspectorTab.inspector.addRule.subCategory.select.enable(True)
+				self.glyphInspectorTab.inspector.addRule.case.select.setItems(
+					["Any", self.cases[layer.parent.case]]
+				)
+				self.glyphInspectorTab.inspector.addRule.case.select.setItem(self.cases[layer.parent.case])
+				self.glyphInspectorTab.inspector.addRule.case.select.enable(True)
+				self.glyphInspectorTab.inspector.addRule.factor.select.set(
+					self.glyphInspectorTab.inspector.glyphInfo.factor.get().replace("Factor: ", "")
+				)
+				self.glyphInspectorTab.inspector.addRule.factor.select.enable(True)
+				self.glyphInspectorTab.inspector.addRule.addButton.enable(True)
 
 	@objc.python_method
 	def add_font_rule_from_glyph_inspector(self, sender):
