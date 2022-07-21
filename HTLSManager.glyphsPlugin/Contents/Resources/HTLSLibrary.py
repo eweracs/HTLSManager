@@ -233,23 +233,52 @@ class HTLSEngine:
 		rule_id = None
 
 		for id in self.config[category]:
-			# check for rules with specified subcategory and case
-			if subcategory == self.config[category][id]["subcategory"] \
-					and case == self.config[category][id]["case"] \
-					and self.config[category][id]["filter"] in name:
-				rule = dict(self.config[category][id])
-				rule_id = id
-				break
-			# check for rules with unspecified subcategory and specified case
-			if self.config[category][id]["subcategory"] == "Any":
-				if case == self.config[category][id]["case"]:
-					if self.config[category][id]["filter"] in name:
+			rule_subcategory = self.config[category][id]["subcategory"]
+			rule_case = self.config[category][id]["case"]
+			rule_filter = self.config[category][id]["filter"] or "UNDEFINED"
+			# check for rules with defined subcategory, defined case and defined filter
+			if subcategory == rule_subcategory:
+				if case == rule_case:
+					if rule_filter in name:
 						rule = dict(self.config[category][id])
 						rule_id = id
 						break
-				# check for rules with unspecified subcategory and unspecified case
-				if self.config[category][id]["case"] == "Any":
-					if self.config[category][id]["filter"] in name:
+					# check for rules with defined subcategory, defined case and undefined filter
+					elif rule_filter == "UNDEFINED":
+						rule = dict(self.config[category][id])
+						rule_id = id
+						break
+				# check for rules with defined subcategory and undefined case, and defined filter
+				elif rule_case == "Any":
+					if rule_filter in name:
+						rule = dict(self.config[category][id])
+						rule_id = id
+						break
+					# check for rules with defined subcategory and undefined case, and undefined filter
+					elif rule_filter == "UNDEFINED":
+						rule = dict(self.config[category][id])
+						rule_id = id
+						break
+			# check for rules with defined case and undefined subcategory, and defined filter
+			elif rule_subcategory == "Any":
+				if case == rule_case:
+					if rule_filter in name:
+						rule = dict(self.config[category][id])
+						rule_id = id
+						break
+					# check for rules with defined case and undefined subcategory, and undefined filter
+					elif rule_filter == "UNDEFINED":
+						rule = dict(self.config[category][id])
+						rule_id = id
+						break
+				# check for rules with undefined subcategory and undefined case, and defined filter
+				elif rule_case == "Any":
+					if rule_filter in name:
+						rule = dict(self.config[category][id])
+						rule_id = id
+						break
+					# check for rules with undefined subcategory and undefined case, and undefined filter
+					elif rule_filter == "UNDEFINED":
 						rule = dict(self.config[category][id])
 						rule_id = id
 						break
