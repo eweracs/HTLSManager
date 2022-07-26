@@ -221,10 +221,11 @@ class HTLSEngine:
 				self.parent.parametersTab.rightGlyphView.glyphInfo.factor.set("Factor: %s" % self.factor)
 
 	def find_exception(self):
-		category = self.layer.parent.category
-		subcategory = self.layer.parent.subCategory
-		case = self.layer.parent.case
-		name = self.layer.parent.name
+		glyph = self.layer.parent
+		name = glyph.name
+		category = glyph.category
+		subcategory = glyph.subCategory
+		case = glyph.case
 
 		if category not in self.categories:
 			return
@@ -232,70 +233,94 @@ class HTLSEngine:
 		rule = None
 		rule_id = None
 
+		# highly un-dynamic best rule determination incoming pog
+
 		for id in self.config[category]:
 			rule_subcategory = self.config[category][id]["subcategory"]
 			rule_case = self.config[category][id]["case"]
-			rule_filter = self.config[category][id]["filter"] or "UNDEFINED"
+			rule_filter = self.config[category][id]["filter"] or None
+
 			# check for rules with defined subcategory, defined case and defined filter
 			if subcategory == rule_subcategory:
 				if case == rule_case:
-					if rule_filter in name:
+					if rule_filter and rule_filter in name:
 						rule = dict(self.config[category][id])
 						rule_id = id
 						break
-					# check for rules with defined subcategory, defined case and undefined filter
-					elif rule_filter == "UNDEFINED":
-						rule = dict(self.config[category][id])
-						rule_id = id
-						break
-				# check for rules with defined subcategory and undefined case, and defined filter
-				elif rule_case == "Any":
-					if rule_filter in name:
-						rule = dict(self.config[category][id])
-						rule_id = id
-						break
-					# check for rules with defined subcategory and undefined case, and undefined filter
-					elif rule_filter == "UNDEFINED":
-						rule = dict(self.config[category][id])
-						rule_id = id
-						break
-			# check for rules with defined case and undefined subcategory, and defined filter
-			elif rule_subcategory == "Any":
-				if case == rule_case:
-					if rule_filter in name:
-						rule = dict(self.config[category][id])
-						rule_id = id
-						break
-					# check for rules with defined case and undefined subcategory, and undefined filter
-					elif rule_filter == "UNDEFINED":
-						rule = dict(self.config[category][id])
-						rule_id = id
-						break
-				# check for rules with undefined subcategory and undefined case, and defined filter
-				elif rule_case == "Any":
-					if rule_filter in name:
-						rule = dict(self.config[category][id])
-						rule_id = id
-						break
-					# check for rules with undefined subcategory and undefined case, and undefined filter
-					elif rule_filter == "UNDEFINED":
-						rule = dict(self.config[category][id])
-						rule_id = id
-						break
+
+		if not rule:
+			for id in self.config[category]:
+				rule_subcategory = self.config[category][id]["subcategory"]
+				rule_case = self.config[category][id]["case"]
+				rule_filter = self.config[category][id]["filter"] or None
+
+				# check for rules with defined subcategory, defined case and no filter
+				if subcategory == rule_subcategory:
+					if case == rule_case:
+						if not rule_filter:
+							rule = dict(self.config[category][id])
+							rule_id = id
+							break
+
+		if not rule:
+			for id in self.config[category]:
+				rule_subcategory = self.config[category][id]["subcategory"]
+				rule_case = self.config[category][id]["case"]
+				rule_filter = self.config[category][id]["filter"] or None
+
+				# check for rules with undefined subcategory, defined case and defined filter
+				if rule_subcategory == "Any":
+					if case == rule_case:
+						if rule_filter and rule_filter in name:
+							rule = dict(self.config[category][id])
+							rule_id = id
+							break
+
+		if not rule:
+			for id in self.config[category]:
+				rule_subcategory = self.config[category][id]["subcategory"]
+				rule_case = self.config[category][id]["case"]
+				rule_filter = self.config[category][id]["filter"] or None
+
+				# check for rules with undefined subcategory, defined case and no filter
+				if rule_subcategory == "Any":
+					if case == rule_case:
+						if not rule_filter:
+							rule = dict(self.config[category][id])
+							rule_id = id
+							break
+
+		if not rule:
+			for id in self.config[category]:
+				rule_subcategory = self.config[category][id]["subcategory"]
+				rule_case = self.config[category][id]["case"]
+				rule_filter = self.config[category][id]["filter"] or None
+
+				# check for rules with undefined subcategory, undefined case and defined filter
+				if rule_subcategory == "Any":
+					if rule_case == "Any":
+						if rule_filter and rule_filter in name:
+							rule = dict(self.config[category][id])
+							rule_id = id
+							break
+
+		if not rule:
+			for id in self.config[category]:
+				rule_subcategory = self.config[category][id]["subcategory"]
+				rule_case = self.config[category][id]["case"]
+				rule_filter = self.config[category][id]["filter"] or None
+
+				# check for rules with undefined subcategory, undefined case and no filter
+				if rule_subcategory == "Any":
+					if rule_case == "Any":
+						if not rule_filter:
+							rule = dict(self.config[category][id])
+							rule_id = id
+							break
 
 		if rule_id and self.master_rules and rule_id in self.master_rules:
 			rule["value"] = self.master_rules[rule_id]
 
-		# if no rule was found, check for rules with unspecified subcategory and case
-		if not rule:
-			for id in self.config[category]:
-				if self.config[category][id]["subcategory"] == "Any" \
-						and self.config[category][id]["case"] == 0 \
-						and self.config[category][id]["filter"] in name:
-					rule = dict(self.config[category][id])
-					if self.master_rules and id in self.master_rules:
-						rule["value"] = self.master_rules[id]
-					break
 		if rule:
 			self.output += "Found spacing rule\n"
 		else:
@@ -412,8 +437,7 @@ class HTLSEngine:
 		                                                     self.maxY,
 		                                                     self.angle,
 		                                                     self.minYref,
-		                                                     self.maxYref
-		                                                     )
+		                                                     self.maxYref)
 
 		# margins will be False, False if there is no measure in the reference zone, and then function stops
 		if not l_total_margins and not r_total_margins:
