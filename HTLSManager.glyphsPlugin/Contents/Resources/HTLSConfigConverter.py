@@ -87,7 +87,7 @@ def convert_dict_to_config(config_dict, config_file_path):
 							category,
 							config_dict[category][key]["subcategory"].replace("Any", "*"),
 							inverted_case_dict[config_dict[category][key]["case"]],
-							config_dict[category][key]["value"],
+							round(float(config_dict[category][key]["value"]), 2),
 							config_dict[category][key]["referenceGlyph"] or "*",
 							config_dict[category][key]["filter"] or "*"
 						)
