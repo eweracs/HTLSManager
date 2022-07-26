@@ -1097,6 +1097,7 @@ class HTLSManager(GeneralPlugin):
 
 		self.manage_profiles_sheet = Sheet((1, 1), self.w)
 		self.profile_groups = []
+		self.rename_profile_buttons = []
 		self.delete_profile_buttons = []
 		stack_views = []
 		for profile in self.user_profiles:
@@ -1104,14 +1105,17 @@ class HTLSManager(GeneralPlugin):
 				continue
 			profile_group = Group("auto")
 			profile_group.title = TextBox("auto", profile)
+			profile_group.renameButton = Button("auto", "Rename", callback=self.rename_profile_callback)
 			profile_group.deleteButton = Button("auto", "Delete", callback=self.delete_profile_callback)
 
 			self.profile_groups.append(profile_group)
+			self.rename_profile_buttons.append(profile_group.renameButton)
 			self.delete_profile_buttons.append(profile_group.deleteButton)
 
 			group_rules = [
-				"H:|[title(100)]-margin-[deleteButton]|",
+				"H:|[title(120)]-margin-[renameButton]-margin-[deleteButton]|",
 				"V:|[title]",
+				"V:|[renameButton]|",
 				"V:|[deleteButton]|",
 			]
 
@@ -1137,9 +1141,32 @@ class HTLSManager(GeneralPlugin):
 		self.manage_profiles_sheet.open()
 
 	@objc.python_method
+	def rename_profile_callback(self, sender):
+		for i, button in enumerate(self.rename_profile_buttons):
+			if button == sender:
+				profile_name = self.profile_groups[i].title.get()
+				new_profile_name = AskString("New profile name:", profile_name, "Rename profile")
+				if new_profile_name and new_profile_name in self.user_profiles:
+					Message(title="Error", message="Profile name already exists.")
+					return
+				if new_profile_name and len(new_profile_name) > 0:
+					self.user_profiles[new_profile_name] = self.user_profiles[profile_name]
+					del self.user_profiles[profile_name]
+					self.profile_groups[i].title.set(new_profile_name)
+					self.fontRulesTab.profiles.selector.setItems(["Choose..."] + list(self.user_profiles.keys()))
+					Glyphs.defaults["com.eweracs.HTLSManager.userProfiles"] = self.user_profiles
+					self.manage_profiles_sheet.resize(1, 1)
+				break
+
+
+	@objc.python_method
 	def delete_profile_callback(self, sender):
 		for i, button in enumerate(self.delete_profile_buttons):
 			if button == sender:
+				profile_name = self.profile_groups[i].title.get()
+				if not dialogs.askYesNo(messageText="Delete profile?",
+				                        informativeText="Are you sure you want to delete the profile %s?" % profile_name):
+					return
 				self.manage_profiles_sheet.stackView.removeView(self.profile_groups[i])
 				del self.user_profiles[self.profile_groups[i].title.get()]
 				del self.profile_groups[i]
@@ -1147,10 +1174,6 @@ class HTLSManager(GeneralPlugin):
 				break
 		self.fontRulesTab.profiles.selector.setItems(["Choose..."] + list(self.user_profiles.keys()))
 		Glyphs.defaults["com.eweracs.HTLSManager.userProfiles"] = self.user_profiles
-
-	@objc.python_method
-	def rename_profile_callback(self, sender):
-		new_profile_name = AskString("New profile name:", self.fontRulesTab.profiles.selector.getItem(), "Rename profile")
 
 	@objc.python_method
 	def close_manage_profiles_sheet(self, sender):
