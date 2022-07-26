@@ -60,7 +60,7 @@ def convert_config_to_dict(config_file_path, glyphs, subcategories):
 
 	except Exception as e:
 		print(e)
-		Message("The config file seems to be invalid", "Import failed")
+		Message(title="Import failed", message="The config file seems to be invalid")
 		return None
 
 	return config_dict
@@ -71,22 +71,31 @@ def convert_dict_to_config(config_dict, config_file_path):
 	Converts a dictionary to a config file.
 	"""
 
-	inverted_case_dict = {index: value for value, index in case_dict}
+	inverted_case_dict = {value: key for key, value in case_dict.items()}
 
 	try:
 		with open(config_file_path, "w") as config_file:
-			for category in categories:
-				for key in config_dict[category]:
+			# add a header
+			config_file.write("# Script, Category, Subcategory, Case, Value, Reference Glyph, Filter\n")
+			# alphabetical category order, separate each category by a title
+			for category in sorted(config_dict.keys()):
+				config_file.write("\n# %s\n" % category)
+				for key in sorted(config_dict[category].keys()):
+					# replace "Any" with "*"
 					config_file.write(
-						"*,%s,%s,%s,%s,%s\n" % (config_dict[category][key]["subcategory"],
-						                        inverted_case_dict[config_dict[category][key]["case"]],
-						                        config_dict[category][key]["value"],
-						                        config_dict[category][key]["referenceGlyph"] or "*",
-						                        config_dict[category][key]["filter"] or "*"))
+						"*,%s,%s,%s,%s,%s,%s,\n" % (
+							category,
+							config_dict[category][key]["subcategory"].replace("Any", "*"),
+							inverted_case_dict[config_dict[category][key]["case"]],
+							config_dict[category][key]["value"],
+							config_dict[category][key]["referenceGlyph"] or "*",
+							config_dict[category][key]["filter"] or "*"
+						)
+					)
 
 	except Exception as e:
 		print(e)
-		Message("There was an error converting the config. Check macro window for details.", "Export failed")
+		Message(title="Export failed", message="There was an issue exporting the config.")
 		return None
 
 	return config_dict
