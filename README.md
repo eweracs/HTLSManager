@@ -1,12 +1,13 @@
 # HTLS Manager
-This plugin is the central hub for your HT Letterspacer setup. Manage font spacing rules, adjust exceptions in your masters, visually fine-tune parameters.
+This plugin is the central hub for your HT Letterspacer setup.
 
-Main features:
-- Easy management of font spacing rules
-- Import _autospace.py files from old HTLS projects
-- Set up profiles to re-use spacing rules in your projects
-- Export your configuration as an _autospace.py file 
+Features:
+- Easily manage font spacing rules
 - Add per-master adjustments to font spacing rules
-- Sync settings between masters
+- Import _autospace.py files from old HTLS projects
+- Export font spacing rules to _autospace.py files
+- Set up profiles to re-use spacing rules in your projects
+- Copy parameters between masters
 - Adjust parameters with a live preview
 - Interpolate parameters between masters
+- View information on current glyph
