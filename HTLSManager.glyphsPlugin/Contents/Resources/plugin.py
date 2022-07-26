@@ -2,6 +2,7 @@
 
 from __future__ import division, print_function, unicode_literals
 import objc
+import os
 from GlyphsApp import *
 from GlyphsApp.plugins import *
 from GlyphsApp.UI import GlyphView
@@ -14,6 +15,7 @@ from HTLSConfigConverter import *
 from HTLSLibrary import *
 
 
+# TODO: Fixed width option for math?
 # TODO: Add a glyph inspector tab, with option to write new rules to font
 # TODO: make rebuilding of UI faster
 # TODO: Write autospace.py file
@@ -177,6 +179,7 @@ class HTLSManager(GeneralPlugin):
 		#########################
 
 		self.fontRulesTab.title = TextBox("auto", "Spacing rules")
+		self.fontRulesTab.helpButton = HelpButton("auto", callback=self.font_rules_help)
 
 		self.fontRulesTab.profiles = Group("auto")
 		self.fontRulesTab.profiles.title = TextBox("auto", "Load profile:")
@@ -185,10 +188,23 @@ class HTLSManager(GeneralPlugin):
 		                                                                   self.user_profiles],
 		                                                  callback=self.load_profile)
 
+		self.fontRulesTab.profiles.options = ActionButton("auto",
+		                                                  [dict(title="Save profile...",
+			                                                  callback=self.save_profile),
+		                                                   dict(title="Manage profiles",
+		                                                        callback=self.manage_profiles_callback),
+		                                                   "----",
+		                                                   dict(title="Import config file...",
+		                                                        callback=self.import_config_file),
+		                                                   dict(title="Export as config file...",
+		                                                   	 callback=self.export_config_file)],
+		                                                  )
+
 		profiles_rules = [
-			"H:|[title]-margin-[selector(160)]|",
+			"H:|[title]-margin-[selector(160)]-[options]|",
 			"V:|[title]",
 			"V:|[selector]|",
+			"V:|[options]"
 		]
 
 		self.fontRulesTab.profiles.addAutoPosSizeRules(profiles_rules, self.metrics)
@@ -229,25 +245,18 @@ class HTLSManager(GeneralPlugin):
 
 			setattr(self.fontRulesTab, category, category_group)
 
-		# add a button to import a file
-		self.fontRulesTab.importButton = Button("auto", "Import config file...", callback=self.import_config_file)
-
-		# add a button to save the current rules as a profile
-		self.fontRulesTab.saveProfileButton = Button("auto", "Save profile...", callback=self.save_profile)
-
 		font_tab_rules = [
-			"H:|-margin-[title]-margin-|",
-			"H:[saveProfileButton]-margin-[importButton]-margin-|",
+			"H:|-margin-[title]-margin-[helpButton]",
 			"H:[profiles]-margin-|",
 			"V:|-margin-[profiles]",
-			"V:[saveProfileButton]-margin-|",
+			"V:|-margin-[helpButton]"
 		]
 
 		# for each category group, add a rule to the font_tab_rules list
 		for category in self.categories:
 			font_tab_rules.append("H:|-margin-[%s]-margin-|" % category)
 		# make a vertical rule combining all category groups
-		font_tab_rules.append("V:|-margin-[title]-margin-[%s]-margin-[importButton]-margin-|" % "]-margin-[".join(
+		font_tab_rules.append("V:|-margin-[title]-margin-[%s]-margin-|" % "]-margin-[".join(
 			self.categories))
 
 		self.fontRulesTab.addAutoPosSizeRules(font_tab_rules, self.metrics)
@@ -411,7 +420,6 @@ class HTLSManager(GeneralPlugin):
 		                                                       layer=None,
 		                                                       backgroundColor=NSColor.clearColor())
 		self.glyphInspectorTab.inspector.glyphName = TextBox("auto", "")
-		self.glyphInspectorTab.inspector.glyphInfo = self.glyphInfo.info_group
 		self.glyphInspectorTab.inspector.infoText = TextBox("auto", "", alignment="center")
 		self.glyphInspectorTab.inspector.paddingTop = Group("auto")
 		self.glyphInspectorTab.inspector.paddingBottom = Group("auto")
@@ -495,6 +503,29 @@ class HTLSManager(GeneralPlugin):
 		self.w.bind("close", self.close)
 
 		Glyphs.addCallback(self.ui_update, UPDATEINTERFACE)
+
+	@objc.python_method
+	def font_rules_help(self, sender):
+		self.fontRulesHelpView = Popover((1, 1))
+		self.fontRulesHelpView.description = TextBox("auto", "Add spacing rules for the project, "
+		                                                     "with the following criteria/settings:\n\n"
+		                                                     "Subcategory, case, filer, reference glyph, factor.\n\n"
+		                                                     "Subcategory: The glyph's subcategory. Check the Glyph "
+		                                                     "Inspector for help.\n"
+		                                                     "Case: The glyph's case.\n"
+		                                                     "Filter: A string to search for in the glyph's name.\n"
+		                                                     "Reference glyph: The height "
+		                                                     "reference. Leave empty to use the glyph itself.\n"
+		                                                     "Factor: The factor to adjust the base spacing by."
+		                                             )
+
+		help_view_rules = [
+			"H:|-margin-[description(460)]-margin-|",
+			"V:|-margin-[description]-margin-|"
+		]
+
+		self.fontRulesHelpView.addAutoPosSizeRules(help_view_rules, self.metrics)
+		self.fontRulesHelpView.open(parentView=self.fontRulesTab.helpButton, preferredEdge="bottom")
 
 	@objc.python_method
 	def add_font_rule_callback(self, sender):
@@ -956,7 +987,7 @@ class HTLSManager(GeneralPlugin):
 		case = self.glyphInspectorTab.inspector.addRule.case.select.get()
 		factor = self.glyphInspectorTab.inspector.addRule.factor.select.get()
 
-		self.add_font_rule(self.create_rule_id, category, subcategory=subcategory, case=case, factor=factor)
+		self.add_font_rule(self.create_rule_id(), category, subcategory=subcategory, case=case, factor=factor)
 
 	@objc.python_method
 	def check_factor_is_float(self, sender):
@@ -1053,8 +1084,78 @@ class HTLSManager(GeneralPlugin):
 				if not dialogs.askYesNo(messageText="Overwrite profile?",
 				                        informativeText="Profile \"%s\" already exists." % profile_name):
 					return
-				else:
-					self.user_profiles[profile_name] = self.font_rules
+			self.user_profiles[profile_name] = self.font_rules
+			self.fontRulesTab.profiles.selector.setItems(["Choose..."] + list(self.user_profiles.keys()))
+			self.fontRulesTab.profiles.selector.setItem(profile_name)
+			Glyphs.defaults["com.eweracs.HTLSManager.userProfiles"] = self.user_profiles
+
+	@objc.python_method
+	def manage_profiles_callback(self, sender):
+		if len(self.user_profiles) == 1:
+			Message(title="No profiles found", message="Create some profiles first.")
+			return
+
+		self.manage_profiles_sheet = Sheet((1, 1), self.w)
+		self.profile_groups = []
+		self.delete_profile_buttons = []
+		stack_views = []
+		for profile in self.user_profiles:
+			if profile == "Default":
+				continue
+			profile_group = Group("auto")
+			profile_group.title = TextBox("auto", profile)
+			profile_group.deleteButton = Button("auto", "Delete", callback=self.delete_profile_callback)
+
+			self.profile_groups.append(profile_group)
+			self.delete_profile_buttons.append(profile_group.deleteButton)
+
+			group_rules = [
+				"H:|[title(100)]-margin-[deleteButton]|",
+				"V:|[title]",
+				"V:|[deleteButton]|",
+			]
+
+			profile_group.addAutoPosSizeRules(group_rules, self.metrics)
+
+			stack_views.append(profile_group)
+
+		self.manage_profiles_sheet.stackView = VerticalStackView("auto",
+		                                                         views=stack_views,
+		                                                         spacing=10,
+		                                                         edgeInsets=(10, 10, 10, 10))
+
+		self.manage_profiles_sheet.doneButton = Button("auto", "Done", callback=self.close_manage_profiles_sheet)
+
+		profiles_rules = [
+			"H:|-margin-[stackView]-margin-|",
+			"H:[doneButton]-margin-|",
+			"V:|-margin-[stackView]-margin-[doneButton]-margin-|",
+		]
+
+		self.manage_profiles_sheet.addAutoPosSizeRules(profiles_rules, self.metrics)
+
+		self.manage_profiles_sheet.open()
+
+	@objc.python_method
+	def delete_profile_callback(self, sender):
+		for i, button in enumerate(self.delete_profile_buttons):
+			if button == sender:
+				self.manage_profiles_sheet.stackView.removeView(self.profile_groups[i])
+				del self.user_profiles[self.profile_groups[i].title.get()]
+				del self.profile_groups[i]
+				del self.delete_profile_buttons[i]
+				break
+		self.fontRulesTab.profiles.selector.setItems(["Choose..."] + list(self.user_profiles.keys()))
+		Glyphs.defaults["com.eweracs.HTLSManager.userProfiles"] = self.user_profiles
+
+	@objc.python_method
+	def rename_profile_callback(self, sender):
+		new_profile_name = AskString("New profile name:", self.fontRulesTab.profiles.selector.getItem(), "Rename profile")
+
+	@objc.python_method
+	def close_manage_profiles_sheet(self, sender):
+		self.manage_profiles_sheet.close()
+		del self.manage_profiles_sheet
 
 	@objc.python_method
 	def import_config_file(self, sender):
@@ -1071,6 +1172,21 @@ class HTLSManager(GeneralPlugin):
 		self.rebuild_font_rules(new_rules)
 		self.font_rules = new_rules
 		self.write_font_rules()
+
+	@objc.python_method
+	def export_config_file(self, sender):
+
+		# get the font file name without the extension
+		font_file_name = os.path.basename(self.font.filepath).split(".")[0]
+
+		current_path = self.font.filepath
+		config_file_path = GetSaveFile(message="Export autospace.py file",
+		                               ProposedFileName=font_file_name + "_autospace.py",
+		                               filetypes=["py"])
+		if config_file_path is None:
+			return
+
+		convert_dict_to_config(self.font_rules, config_file_path)
 
 	@objc.python_method
 	def create_rule_id(self):
