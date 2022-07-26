@@ -471,9 +471,7 @@ class HTLSEngine:
 		self.newL = math.ceil(0 - self.distance_l + self.calculate_sb_value(self.l_polygon))
 		self.newR = math.ceil(0 - self.distance_r + self.calculate_sb_value(self.r_polygon))
 
-		if ".tosf" in self.glyph.name or ".tf" in self.glyph.name \
-				or self.glyph.widthMetricsKey or self.layer.widthMetricsKey:
-
+		if self.tabular_width:
 			width_shape = self.r_full_extreme.x - self.l_full_extreme.x
 			width_actual = width_shape + self.newL + self.newR
 			width_diff = (self.layer.width - width_actual) / 2

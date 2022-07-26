@@ -190,14 +190,14 @@ class HTLSManager(GeneralPlugin):
 
 		self.fontRulesTab.profiles.options = ActionButton("auto",
 		                                                  [dict(title="Save profile...",
-			                                                  callback=self.save_profile),
+		                                                        callback=self.save_profile),
 		                                                   dict(title="Manage profiles",
 		                                                        callback=self.manage_profiles_callback),
 		                                                   "----",
 		                                                   dict(title="Import config file...",
 		                                                        callback=self.import_config_file),
 		                                                   dict(title="Export as config file...",
-		                                                   	 callback=self.export_config_file)],
+		                                                        callback=self.export_config_file)],
 		                                                  )
 
 		profiles_rules = [
@@ -435,7 +435,7 @@ class HTLSManager(GeneralPlugin):
 		self.glyphInspectorTab.inspector.addRule.factor = Group("auto")
 		self.glyphInspectorTab.inspector.addRule.factor.title = TextBox("auto", "Factor")
 		self.glyphInspectorTab.inspector.addRule.factor.select = EditText("auto", "1",
-		                                                                 callback=self.check_factor_is_float)
+		                                                                  callback=self.check_factor_is_float)
 		self.glyphInspectorTab.inspector.addRule.addButton = Button("auto", "Add rule",
 		                                                            callback=self.add_font_rule_from_glyph_inspector)
 
@@ -824,7 +824,7 @@ class HTLSManager(GeneralPlugin):
 			target_master_axis_value = self.font.selectedFontMaster.axes[axis_index]
 			# get the interpolation factor
 			factor = (target_master_axis_value - master_one_axis_value) / (
-						master_two_axis_value - master_one_axis_value)
+					master_two_axis_value - master_one_axis_value)
 
 			for parameter in ["paramArea", "paramDepth"]:
 				# get the master values of the axis
@@ -1158,7 +1158,6 @@ class HTLSManager(GeneralPlugin):
 					self.manage_profiles_sheet.resize(1, 1)
 				break
 
-
 	@objc.python_method
 	def delete_profile_callback(self, sender):
 		for i, button in enumerate(self.delete_profile_buttons):
@@ -1202,7 +1201,6 @@ class HTLSManager(GeneralPlugin):
 		# get the font file name without the extension
 		font_file_name = os.path.basename(self.font.filepath).split(".")[0]
 
-		current_path = self.font.filepath
 		config_file_path = GetSaveFile(message="Export autospace.py file",
 		                               ProposedFileName=font_file_name + "_autospace.py",
 		                               filetypes=["py"])
