@@ -1,4 +1,3 @@
-#
 # HT Letterspacer, an auto-spacing tool
 # Copyright (C) 2009 - 2018, The HT Letterspacer Project Authors
 # Version 1.11
@@ -9,17 +8,7 @@ from GlyphsApp import *
 import math
 from Foundation import NSMinX, NSMaxX, NSMinY, NSMaxY, NSMakePoint
 
-paramFreq = 5
-
-
-# Functions
-def set_sidebearings(layer, new_l, new_r, width):
-	layer.skip_LSB = new_l
-	layer.skip_RSB = new_r
-
-	# adjusts the tabular miscalculation
-	if width:
-		layer.width = width
+paramFreq = 4
 
 
 # point list area
@@ -176,23 +165,21 @@ class HTLSEngine:
 		self.font = layer.parent.parent
 		self.master = layer.master
 		self.layer = layer
+		self.glyph = layer.parent
 		self.reference_layer = layer
 		self.minYref = None
 		self.maxYref = None
 		self.minY = None
 		self.maxY = None
-		self.layerWidth = None
 		self.newR = None
 		self.newL = None
-		self.tabVersion = False
-		self.newWidth = False
-		self.width = None
-		self.skip_LSB = None
-		self.skip_RSB = None
-		self.paramArea = int(self.master.customParameters["paramArea"]) or 400
-		self.paramDepth = int(self.master.customParameters["paramDepth"]) or 12
+		self.tabular_width = False
+		self.skip_LSB = False
+		self.skip_RSB = False
+		self.paramArea = int(self.master.customParameters["paramArea"] or 400)
+		self.paramDepth = int(self.master.customParameters["paramDepth"] or 12)
 		self.paramOver = 0  # self.master.customParameters["paramOver"] or 0
-		self.paramFreq = 5
+		self.paramFreq = 4
 		self.xHeight = int(self.master.xHeight)
 		self.angle = layer.italicAngle
 		self.upm = int(self.master.font.upm)
@@ -205,6 +192,15 @@ class HTLSEngine:
 		self.l_polygon = None
 		self.r_polygon = None
 
+		if not self.master.customParameters["paramArea"] or not self.master.customParameters["paramDepth"]:
+			Message(title="Missing configuration",
+			        message="Please set up parameters in HTLS Manager. Using default values.")
+
+		if ".tosf" in self.glyph.name or ".tf" in self.glyph.name \
+				or self.glyph.widthMetricsKey or self.layer.widthMetricsKey:
+			self.tabular_width = True
+			self.output += "Using fixed width: %s.\n" % int(self.layer.width)
+
 		self.rule = self.find_exception()
 		if self.rule:
 			self.factor = float(self.rule["value"])
@@ -212,16 +208,16 @@ class HTLSEngine:
 			if reference_glyph:
 				self.reference_layer = reference_glyph.layers[self.layer.associatedMasterId]
 
-		self.output += "Reference: %s\nFactor: %s\n" % (self.reference_layer.parent.name, float(self.factor))
+		self.output += "Reference: %s\nFactor: %s" % (self.reference_layer.parent.name, float(self.factor))
 
 		if parent:
-			if self.parent.leftGlyphView.glyph.name == self.layer.parent.name:
+			if self.parent.leftGlyphView.glyph.name == self.glyph.name:
 				self.parent.parametersTab.leftGlyphView.glyphInfo.factor.set("Factor: %s" % self.factor)
-			if self.parent.rightGlyphView.glyph.name == self.layer.parent.name:
+			if self.parent.rightGlyphView.glyph.name == self.glyph.name:
 				self.parent.parametersTab.rightGlyphView.glyphInfo.factor.set("Factor: %s" % self.factor)
 
 	def find_exception(self):
-		glyph = self.layer.parent
+		glyph = self.glyph
 		name = glyph.name
 		category = glyph.category
 		subcategory = glyph.subCategory
@@ -322,9 +318,9 @@ class HTLSEngine:
 			rule["value"] = self.master_rules[rule_id]
 
 		if rule:
-			self.output += "Found spacing rule\n"
+			self.output += "Found spacing rule.\n"
 		else:
-			self.output += "No spacing rule found\n"
+			self.output += "No spacing rule found.\n"
 
 		return rule
 
@@ -403,22 +399,22 @@ class HTLSEngine:
 		if not self.layer.name or len(self.layer.components) + len(self.layer.paths) == 0:
 			return
 		elif self.layer.hasAlignedWidth():
-			self.output = "Glyph %s has aligned width. Skipping.\n__________________\n" % self.layer.parent.name
+			self.output = "Glyph %s has aligned width. Skipping.\n__________________\n" % self.glyph.name
 			return
-		elif self.layer.parent.leftMetricsKey:
+		elif self.glyph.leftMetricsKey:
 			self.skip_LSB = True
-			self.output += "Glyph %s has left metrics key." % self.layer.parent.name
-		elif self.layer.parent.rightMetricsKey:
+			self.output += "Glyph %s has left metrics key." % self.glyph.name
+		elif self.glyph.rightMetricsKey:
 			self.skip_RSB = True
-			self.output += "Glyph %s has right metrics key." % self.layer.parent.name
-		elif "fraction" in self.layer.parent.name:
+			self.output += "Glyph %s has right metrics key." % self.glyph.name
+		elif "fraction" in self.glyph.name:
 			self.output = "Glyph fraction should be spaced manually. Skipping.\n__________________\n"
 			return
 
 		self.output += "\n__________________\n"
 		# Decompose layer for analysis, as the deeper plumbing assumes to be looking at outlines.
 		layer_decomposed = self.layer.copyDecomposedLayer()
-		layer_decomposed.parent = self.layer.parent
+		layer_decomposed.parent = self.glyph
 		# get reference glyph maximum points
 		overshoot = self.overshoot()
 
@@ -471,33 +467,24 @@ class HTLSEngine:
 	def current_layer_sidebearings(self):
 		if not self.calculate_polygons():
 			return
-		# set new sidebearings
+
 		self.newL = math.ceil(0 - self.distance_l + self.calculate_sb_value(self.l_polygon))
 		self.newR = math.ceil(0 - self.distance_r + self.calculate_sb_value(self.r_polygon))
 
-		# tabVersion
-		if ".tosf" in self.layer.parent.name or ".tf" in self.layer.parent.name or self.tabVersion:
-			if self.width:
-				self.layerWidth = self.width
-			else:
-				self.layerWidth = self.layer.width
+		if ".tosf" in self.glyph.name or ".tf" in self.glyph.name \
+				or self.glyph.widthMetricsKey or self.layer.widthMetricsKey:
 
 			width_shape = self.r_full_extreme.x - self.l_full_extreme.x
 			width_actual = width_shape + self.newL + self.newR
-			width_diff = (self.layerWidth - width_actual) / 2
+			width_diff = (self.layer.width - width_actual) / 2
 
 			self.newL += width_diff
 			self.newR += width_diff
-			self.newWidth = self.layerWidth
 
-		# end tabVersion
-
-		# if there is a metric rule
 		else:
-			if self.layer.parent.leftMetricsKey is not None or self.skip_LSB:
+			if self.skip_LSB:
 				self.newL = self.layer.LSB
-
-			if self.layer.parent.rightMetricsKey is not None or self.skip_RSB:
+			if self.skip_RSB:
 				self.newR = self.layer.RSB
 
-			return self.newL, self.newR
+		return self.newL, self.newR
