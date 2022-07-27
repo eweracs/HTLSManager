@@ -17,7 +17,6 @@ from HTLSLibrary import *
 
 # TODO: Fixed width option in rules?
 # TODO: make rebuilding of UI faster
-# TODO: detect conflicting rules
 
 
 class HTLSManager(GeneralPlugin):
@@ -243,9 +242,12 @@ class HTLSManager(GeneralPlugin):
 
 			setattr(self.fontRulesTab, category, category_group)
 
+		self.fontRulesTab.conflictCheckText = TextBox("auto", "No conflicting rules detected.")
+
 		font_tab_rules = [
 			"H:|-margin-[title]-margin-[helpButton]",
 			"H:[profiles]-margin-|",
+			"H:|-margin-[conflictCheckText]-margin-|",
 			"V:|-margin-[profiles]",
 			"V:|-margin-[helpButton]"
 		]
@@ -254,14 +256,16 @@ class HTLSManager(GeneralPlugin):
 		for category in self.categories:
 			font_tab_rules.append("H:|-margin-[%s]-margin-|" % category)
 		# make a vertical rule combining all category groups
-		font_tab_rules.append("V:|-margin-[title]-margin-[%s]-margin-|" % "]-margin-[".join(
-			self.categories))
+		font_tab_rules.append("V:|-margin-[title]-margin-[%s]-margin-[conflictCheckText]-margin-|"
+		                      % "]-margin-[".join(self.categories))
 
 		self.fontRulesTab.addAutoPosSizeRules(font_tab_rules, self.metrics)
 
+		self.check_for_conflicting_rules()
+
 		#########################
 		#                       #
-		#  Master rules tab  #
+		#  Master rules tab     #
 		#                       #
 		#########################
 
@@ -509,6 +513,8 @@ class HTLSManager(GeneralPlugin):
 		self.w.bind("close", self.close)
 
 		Glyphs.addCallback(self.ui_update, UPDATEINTERFACE)
+		Glyphs.addCallback(self.close_window, DOCUMENTOPENED)
+		Glyphs.addCallback(self.close_window, DOCUMENTWILLCLOSE)
 
 	@objc.python_method
 	def font_rules_help(self, sender):
@@ -569,6 +575,8 @@ class HTLSManager(GeneralPlugin):
 
 		self.fontRulesTab.profiles.selector.setItem("Choose...")
 
+		self.check_for_conflicting_rules()
+
 	@objc.python_method
 	def remove_font_rule_callback(self, sender):
 		for category in self.categories:
@@ -595,6 +603,7 @@ class HTLSManager(GeneralPlugin):
 		self.leftGlyphView.glyphInfo.set_exception_factor()
 		self.rightGlyphView.glyphInfo.set_exception_factor()
 		self.fontRulesTab.profiles.selector.setItem("Choose...")
+		self.check_for_conflicting_rules()
 
 	@objc.python_method
 	def update_font_rule(self, sender):
@@ -692,6 +701,30 @@ class HTLSManager(GeneralPlugin):
 	@objc.python_method
 	def write_font_rules(self):
 		self.font.userData["com.eweracs.HTLSManager.fontRules"] = self.font_rules
+
+	@objc.python_method
+	def check_for_conflicting_rules(self):
+		for category in self.categories:
+			for source_rule_id in self.font_rules[category]:
+				source_rule = self.font_rules[category][source_rule_id]
+				for compare_rule_id in self.font_rules[category]:
+					compare_rule = self.font_rules[category][compare_rule_id]
+					if source_rule_id != compare_rule_id \
+							and source_rule["subcategory"] == compare_rule["subcategory"] \
+							and source_rule["case"] == compare_rule["case"] \
+							and source_rule["filter"] == compare_rule["filter"]:
+
+						conflict_text = "Conflicting rules in category %s: Subcategory: %s, case: %s, filter: %s" \
+						                % (category,
+						                   source_rule["subcategory"],
+						                   self.cases[source_rule["case"]],
+						                   source_rule["filter"] or "None")
+
+						self.fontRulesTab.conflictCheckText.set(conflict_text)
+						return False, conflict_text
+
+		self.fontRulesTab.conflictCheckText.set("No conflicting rules detected.")
+		return True, None
 
 	@objc.python_method
 	def set_master_parameter(self, master_id, parameter, value):
@@ -870,6 +903,10 @@ class HTLSManager(GeneralPlugin):
 
 	@objc.python_method
 	def ui_update(self, sender):
+		# check if the font was switched
+		if self.font != Glyphs.font:
+			self.w.close()
+			return
 		# check if the master was switched
 		if self.currentMasterID != self.font.selectedFontMaster.id:
 			self.currentMasterID = self.font.selectedFontMaster.id
@@ -1248,6 +1285,10 @@ class HTLSManager(GeneralPlugin):
 	def close(self, sender):
 		Glyphs.removeCallback(self.ui_update)
 		self.write_preferences()
+
+	def close_window(self, sender=None):
+		self.w.close()
+		return
 
 	@objc.python_method
 	def __file__(self):
