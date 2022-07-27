@@ -11,3 +11,5 @@ Features:
 - Adjust parameters with a live preview
 - Interpolate parameters between masters
 - View information on current glyph
+
+![Visually adjust parameters](HTLSManager.png)
