@@ -486,3 +486,29 @@ class HTLSEngine:
 				self.newR = self.layer.RSB
 
 		return self.newL, self.newR
+
+
+class HTLSScript:
+	def __init__(self, all_masters):
+		self.font = Glyphs.font
+
+		if self.font is None:
+			Message("No font selected", "Select a font project!")
+			return
+
+		for glyph in self.font.selectedLayers:
+			parent = glyph.parent
+			for layer in parent.layers:
+				if not layer.isMasterLayer:
+					continue
+				if not all_masters and layer.associatedMasterId != self.font.selectedFontMaster.id:
+					continue
+				self.engine = HTLSEngine(layer)
+
+				layer_lsb, layer_rsb = self.engine.current_layer_sidebearings() or [None, None]
+				if (not layer_lsb or not layer_rsb) and (layer_lsb != 0 or layer_rsb != 0):
+					continue
+				layer.LSB, layer.RSB = layer_lsb, layer_rsb
+				layer.syncMetrics()
+
+				print(self.engine.output)
