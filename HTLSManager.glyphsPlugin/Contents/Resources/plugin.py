@@ -15,10 +15,8 @@ from HTLSConfigConverter import *
 from HTLSLibrary import *
 
 
-# TODO: Fixed width option for math?
-# TODO: Add a glyph inspector tab, with option to write new rules to font
+# TODO: Fixed width option in rules?
 # TODO: make rebuilding of UI faster
-# TODO: Write autospace.py file
 # TODO: detect conflicting rules
 
 
@@ -841,6 +839,7 @@ class HTLSManager(GeneralPlugin):
 			self.depthSettings.ui_update(self.font.selectedFontMaster.id,
 			                             int(self.font.selectedFontMaster.customParameters["paramDepth"]))
 
+		self.apply_parameters_to_selection()
 		self.close_interpolation_sheet()
 
 	@objc.python_method
