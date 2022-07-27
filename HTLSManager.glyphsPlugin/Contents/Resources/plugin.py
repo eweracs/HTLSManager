@@ -430,11 +430,16 @@ class HTLSManager(GeneralPlugin):
 		self.glyphInspectorTab.inspector.addRule.case = Group("auto")
 		self.glyphInspectorTab.inspector.addRule.case.title = TextBox("auto", "Case")
 		self.glyphInspectorTab.inspector.addRule.case.select = PopUpButton("auto", ["Any", "Lowercase"])
+		self.glyphInspectorTab.inspector.addRule.filter = Group("auto")
+		self.glyphInspectorTab.inspector.addRule.filter.title = TextBox("auto", "Filter")
+		self.glyphInspectorTab.inspector.addRule.filter.select = EditText("auto", "", placeholder="None")
 		self.glyphInspectorTab.inspector.addRule.factor = Group("auto")
 		self.glyphInspectorTab.inspector.addRule.factor.title = TextBox("auto", "Factor")
-		self.glyphInspectorTab.inspector.addRule.factor.select = EditText("auto", "1",
+		self.glyphInspectorTab.inspector.addRule.factor.select = EditText("auto",
+		                                                                  "1",
 		                                                                  callback=self.check_factor_is_float)
-		self.glyphInspectorTab.inspector.addRule.addButton = Button("auto", "Add rule",
+		self.glyphInspectorTab.inspector.addRule.addButton = Button("auto",
+		                                                            "Add rule",
 		                                                            callback=self.add_font_rule_from_glyph_inspector)
 
 		set_criteria_group_rules = [
@@ -446,6 +451,7 @@ class HTLSManager(GeneralPlugin):
 
 		self.glyphInspectorTab.inspector.addRule.subCategory.addAutoPosSizeRules(set_criteria_group_rules, self.metrics)
 		self.glyphInspectorTab.inspector.addRule.case.addAutoPosSizeRules(set_criteria_group_rules, self.metrics)
+		self.glyphInspectorTab.inspector.addRule.filter.addAutoPosSizeRules(set_criteria_group_rules, self.metrics)
 		self.glyphInspectorTab.inspector.addRule.factor.addAutoPosSizeRules(set_criteria_group_rules, self.metrics)
 
 		add_rule_group_rules = [
@@ -453,9 +459,11 @@ class HTLSManager(GeneralPlugin):
 			"H:|[title]|",
 			"H:|[subCategory]|",
 			"H:|[case]|",
+			"H:|[filter]|",
 			"H:|[factor]|",
 			"H:|[addButton]",
-			"V:|-margin-[title]-margin-[subCategory]-margin-[case]-margin-[factor]-margin-[addButton]-margin-|"
+			"V:|-margin-[title]-margin-[subCategory]-margin-[case]-margin-[filter]-margin-[factor]-margin-"
+			"[addButton]-margin-|"
 		]
 
 		self.glyphInspectorTab.inspector.addRule.addAutoPosSizeRules(add_rule_group_rules, self.metrics)
@@ -507,7 +515,7 @@ class HTLSManager(GeneralPlugin):
 		self.fontRulesHelpView = Popover((1, 1))
 		self.fontRulesHelpView.description = TextBox("auto", "Add spacing rules for the project, "
 		                                                     "with the following criteria/settings:\n\n"
-		                                                     "Subcategory, case, filer, reference glyph, factor.\n\n"
+		                                                     "Subcategory, case, filter, reference glyph, factor.\n\n"
 		                                                     "Subcategory: The glyph's subcategory. Check the Glyph "
 		                                                     "Inspector for help.\n"
 		                                                     "Case: The glyph's case.\n"
@@ -983,10 +991,12 @@ class HTLSManager(GeneralPlugin):
 		# call the add font rule method with the values selected in the addRule section of the glyph inspector
 		category = self.font.selectedLayers[0].parent.category
 		subcategory = self.glyphInspectorTab.inspector.addRule.subCategory.select.getItem()
-		case = self.glyphInspectorTab.inspector.addRule.case.select.get()
+		case = self.cases.index(self.glyphInspectorTab.inspector.addRule.case.select.getItem())
 		factor = self.glyphInspectorTab.inspector.addRule.factor.select.get()
+		filter = self.glyphInspectorTab.inspector.addRule.filter.select.get()
 
-		self.add_font_rule(self.create_rule_id(), category, subcategory=subcategory, case=case, factor=factor)
+		self.add_font_rule(self.create_rule_id(), category, subcategory=subcategory, case=case, filter=filter,
+		                   factor=factor)
 
 	@objc.python_method
 	def check_factor_is_float(self, sender):
