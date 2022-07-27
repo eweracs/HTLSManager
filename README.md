@@ -12,4 +12,9 @@ Features:
 - Interpolate parameters between masters
 - View information on current glyph
 
+Todo:
+- Expand functionality for separate writing systems
+- Detect change of frontmost font
+- accomodate paramOver (?)
+
 ![Visually adjust parameters](HTLSManager.png)
