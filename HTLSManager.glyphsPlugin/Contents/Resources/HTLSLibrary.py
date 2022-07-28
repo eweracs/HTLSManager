@@ -192,10 +192,6 @@ class HTLSEngine:
 		self.l_polygon = None
 		self.r_polygon = None
 
-		if not self.master.customParameters["paramArea"] or not self.master.customParameters["paramDepth"]:
-			Message(title="Missing configuration",
-			        message="Please set up parameters in HTLS Manager. Using default values.")
-
 		if ".tosf" in self.glyph.name or ".tf" in self.glyph.name \
 				or self.glyph.widthMetricsKey or self.layer.widthMetricsKey:
 			self.tabular_width = True
@@ -495,6 +491,11 @@ class HTLSScript:
 		if self.font is None:
 			Message("No font selected", "Select a font project!")
 			return
+
+		if not self.font.selectedFontMaster.customParameters["paramArea"] \
+				or not self.font.selectedFontMaster.customParameters["paramDepth"]:
+			Message(title="Missing configuration",
+			        message="Please set up parameters in HTLS Manager. Using default values.")
 
 		for glyph in self.font.selectedLayers:
 			parent = glyph.parent
