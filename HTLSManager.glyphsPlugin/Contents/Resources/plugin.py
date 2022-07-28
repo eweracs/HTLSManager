@@ -429,26 +429,41 @@ class HTLSManager(GeneralPlugin):
 		self.glyphInspectorTab.inspector.addRule = Group("auto")
 		self.glyphInspectorTab.inspector.addRule.title = TextBox("auto", "Add rule")
 		self.glyphInspectorTab.inspector.addRule.subCategory = Group("auto")
-		self.glyphInspectorTab.inspector.addRule.subCategory.title = TextBox("auto", "Subcategory")
-		self.glyphInspectorTab.inspector.addRule.subCategory.select = PopUpButton("auto", ["Any"])
+		self.glyphInspectorTab.inspector.addRule.subCategory.title = TextBox("auto", "Subcategory", sizeStyle="small")
+		self.glyphInspectorTab.inspector.addRule.subCategory.select = PopUpButton("auto", ["Any"], sizeStyle="small")
 		self.glyphInspectorTab.inspector.addRule.case = Group("auto")
-		self.glyphInspectorTab.inspector.addRule.case.title = TextBox("auto", "Case")
-		self.glyphInspectorTab.inspector.addRule.case.select = PopUpButton("auto", ["Any", "Lowercase"])
+		self.glyphInspectorTab.inspector.addRule.case.title = TextBox("auto", "Case", sizeStyle="small")
+		self.glyphInspectorTab.inspector.addRule.case.select = PopUpButton("auto",
+		                                                                   ["Any",
+		                                                                    "Lowercase"],
+		                                                                   sizeStyle="small")
 		self.glyphInspectorTab.inspector.addRule.filter = Group("auto")
-		self.glyphInspectorTab.inspector.addRule.filter.title = TextBox("auto", "Filter")
-		self.glyphInspectorTab.inspector.addRule.filter.select = EditText("auto", "", placeholder="None")
+		self.glyphInspectorTab.inspector.addRule.filter.title = TextBox("auto", "Filter", sizeStyle="small")
+		self.glyphInspectorTab.inspector.addRule.filter.select = EditText("auto",
+		                                                                  "",
+		                                                                  placeholder="None",
+		                                                                  sizeStyle="small")
+		self.glyphInspectorTab.inspector.addRule.referenceGlyph = Group("auto")
+		self.glyphInspectorTab.inspector.addRule.referenceGlyph.title = TextBox("auto",
+		                                                                        "Reference glyph",
+		                                                                        sizeStyle="small")
+		self.glyphInspectorTab.inspector.addRule.referenceGlyph.select = ComboBox(
+			"auto", [glyph.name for glyph in self.font.glyphs], sizeStyle="small", callback=self.check_reference_glyph
+		)
 		self.glyphInspectorTab.inspector.addRule.factor = Group("auto")
-		self.glyphInspectorTab.inspector.addRule.factor.title = TextBox("auto", "Factor")
+		self.glyphInspectorTab.inspector.addRule.factor.title = TextBox("auto", "Factor", sizeStyle="small")
 		self.glyphInspectorTab.inspector.addRule.factor.select = EditText("auto",
 		                                                                  "1",
+		                                                                  sizeStyle="small",
 		                                                                  callback=self.check_factor_is_float)
 		self.glyphInspectorTab.inspector.addRule.addButton = Button("auto",
 		                                                            "Add rule",
+		                                                            sizeStyle="small",
 		                                                            callback=self.add_font_rule_from_glyph_inspector)
 
 		set_criteria_group_rules = [
 			# title and select, horizontally aligned, vertically on one line, visual format language
-			"H:|[title]-margin-[select(100)]|",
+			"H:|[title]-margin-[select(80)]|",
 			"V:|[title]",
 			"V:|[select]|"
 		]
@@ -456,6 +471,8 @@ class HTLSManager(GeneralPlugin):
 		self.glyphInspectorTab.inspector.addRule.subCategory.addAutoPosSizeRules(set_criteria_group_rules, self.metrics)
 		self.glyphInspectorTab.inspector.addRule.case.addAutoPosSizeRules(set_criteria_group_rules, self.metrics)
 		self.glyphInspectorTab.inspector.addRule.filter.addAutoPosSizeRules(set_criteria_group_rules, self.metrics)
+		self.glyphInspectorTab.inspector.addRule.referenceGlyph.addAutoPosSizeRules(set_criteria_group_rules,
+		                                                                            self.metrics)
 		self.glyphInspectorTab.inspector.addRule.factor.addAutoPosSizeRules(set_criteria_group_rules, self.metrics)
 
 		add_rule_group_rules = [
@@ -464,10 +481,11 @@ class HTLSManager(GeneralPlugin):
 			"H:|[subCategory]|",
 			"H:|[case]|",
 			"H:|[filter]|",
+			"H:|[referenceGlyph]|",
 			"H:|[factor]|",
 			"H:|[addButton]",
-			"V:|-margin-[title]-margin-[subCategory]-margin-[case]-margin-[filter]-margin-[factor]-margin-"
-			"[addButton]-margin-|"
+			"V:|-margin-[title]-margin-[subCategory]-margin-[case]-margin-[filter]-margin-[referenceGlyph]-margin-"
+			"[factor]-margin-[addButton]-margin-|"
 		]
 
 		self.glyphInspectorTab.inspector.addRule.addAutoPosSizeRules(add_rule_group_rules, self.metrics)
@@ -575,6 +593,10 @@ class HTLSManager(GeneralPlugin):
 
 		self.fontRulesTab.profiles.selector.setItem("Choose...")
 
+		self.leftGlyphView.glyphInfo.set_exception_settings()
+		self.rightGlyphView.glyphInfo.set_exception_settings()
+		self.InspectorTabGlyphInfo.set_exception_settings()
+
 		self.check_for_conflicting_rules()
 
 	@objc.python_method
@@ -600,8 +622,9 @@ class HTLSManager(GeneralPlugin):
 
 		self.write_font_rules()
 
-		self.leftGlyphView.glyphInfo.set_exception_factor()
-		self.rightGlyphView.glyphInfo.set_exception_factor()
+		self.leftGlyphView.glyphInfo.set_exception_settings()
+		self.rightGlyphView.glyphInfo.set_exception_settings()
+		self.InspectorTabGlyphInfo.set_exception_settings()
 		self.fontRulesTab.profiles.selector.setItem("Choose...")
 		self.check_for_conflicting_rules()
 
@@ -647,8 +670,9 @@ class HTLSManager(GeneralPlugin):
 
 		self.write_font_rules()
 
-		self.leftGlyphView.glyphInfo.set_exception_factor()
-		self.rightGlyphView.glyphInfo.set_exception_factor()
+		self.leftGlyphView.glyphInfo.set_exception_settings()
+		self.rightGlyphView.glyphInfo.set_exception_settings()
+		self.InspectorTabGlyphInfo.set_exception_settings()
 
 		self.check_for_conflicting_rules()
 
@@ -684,8 +708,9 @@ class HTLSManager(GeneralPlugin):
 					self.master_rules_groups[rule].resetButton.enable(False)
 				break
 
-		self.leftGlyphView.glyphInfo.set_exception_factor()
-		self.rightGlyphView.glyphInfo.set_exception_factor()
+		self.leftGlyphView.glyphInfo.set_exception_settings()
+		self.rightGlyphView.glyphInfo.set_exception_settings()
+		self.InspectorTabGlyphInfo.set_exception_settings()
 
 	@objc.python_method
 	def reset_master_rule(self, sender):
@@ -697,8 +722,9 @@ class HTLSManager(GeneralPlugin):
 				del self.font.selectedFontMaster.userData["HTLSManagerMasterRules"][rule]
 				break
 
-		self.leftGlyphView.glyphInfo.set_exception_factor()
-		self.rightGlyphView.glyphInfo.set_exception_factor()
+		self.leftGlyphView.glyphInfo.set_exception_settings()
+		self.rightGlyphView.glyphInfo.set_exception_settings()
+		self.InspectorTabGlyphInfo.set_exception_settings()
 
 	@objc.python_method
 	def write_font_rules(self):
@@ -727,6 +753,15 @@ class HTLSManager(GeneralPlugin):
 
 		self.fontRulesTab.conflictCheckText.set("No conflicting rules detected.")
 		return True, None
+
+	@objc.python_method
+	def check_reference_glyph(self, sender):
+		if sender.get() not in self.font.glyphs and len(sender.get()) > 0:
+			Message(title="Glyph not found",
+			        message="The glyph %s does not exist in the font." % sender.get())
+			sender.set("")
+			return False
+		return True
 
 	@objc.python_method
 	def set_master_parameter(self, master_id, parameter, value):
@@ -919,8 +954,9 @@ class HTLSManager(GeneralPlugin):
 
 			self.parametersTab.masterOptions.setItems(self.action_button_items())
 			self.update_parameter_ui()
-			self.leftGlyphView.glyphInfo.set_exception_factor()
-			self.rightGlyphView.glyphInfo.set_exception_factor()
+			self.leftGlyphView.glyphInfo.set_exception_settings()
+			self.rightGlyphView.glyphInfo.set_exception_settings()
+			self.InspectorTabGlyphInfo.set_exception_settings()
 
 			# read the current master's user data and update all fields in the master rules tab accordingly
 			for category in self.categories:
@@ -963,6 +999,7 @@ class HTLSManager(GeneralPlugin):
 			self.glyphInspectorTab.inspector.glyphInfo.category.set("Category:")
 			self.glyphInspectorTab.inspector.glyphInfo.subCategory.set("Subcategory:")
 			self.glyphInspectorTab.inspector.glyphInfo.case.set("Case:")
+			self.glyphInspectorTab.inspector.glyphInfo.referenceGlyph.set("Reference Glyph:")
 			self.glyphInspectorTab.inspector.glyphInfo.factor.set("Factor:")
 
 			# set the add rule fields to empty
@@ -970,71 +1007,85 @@ class HTLSManager(GeneralPlugin):
 			self.glyphInspectorTab.inspector.addRule.subCategory.select.enable(False)
 			self.glyphInspectorTab.inspector.addRule.case.select.setItems([])
 			self.glyphInspectorTab.inspector.addRule.case.select.enable(False)
+			self.glyphInspectorTab.inspector.addRule.filter.select.set("")
+			self.glyphInspectorTab.inspector.addRule.filter.select.enable(False)
+			self.glyphInspectorTab.inspector.addRule.referenceGlyph.select.set("")
+			self.glyphInspectorTab.inspector.addRule.referenceGlyph.select.enable(False)
 			self.glyphInspectorTab.inspector.addRule.factor.select.set("")
 			self.glyphInspectorTab.inspector.addRule.factor.select.enable(False)
 			self.glyphInspectorTab.inspector.addRule.addButton.enable(False)
 
-		else:
-			if len(self.font.selectedLayers) > 1:
-				self.glyphInspectorTab.inspector.infoText.set("Multiple layers selected")
-				self.glyphInspectorTab.inspector.glyphView.layer = None
-				self.glyphInspectorTab.inspector.glyphName.set("(Multiple)")
-				self.glyphInspectorTab.inspector.glyphInfo.category.set("Category:")
-				self.glyphInspectorTab.inspector.glyphInfo.subCategory.set("Subcategory:")
-				self.glyphInspectorTab.inspector.glyphInfo.case.set("Case:")
-				self.glyphInspectorTab.inspector.glyphInfo.factor.set("Factor:")
+		elif len(self.font.selectedLayers) > 1:
+			self.glyphInspectorTab.inspector.infoText.set("Multiple layers selected")
+			self.glyphInspectorTab.inspector.glyphView.layer = None
+			self.glyphInspectorTab.inspector.glyphName.set("(Multiple)")
+			self.glyphInspectorTab.inspector.glyphInfo.category.set("Category:")
+			self.glyphInspectorTab.inspector.glyphInfo.subCategory.set("Subcategory:")
+			self.glyphInspectorTab.inspector.glyphInfo.case.set("Case:")
+			self.glyphInspectorTab.inspector.glyphInfo.referenceGlyph.set("Reference Glyph:")
+			self.glyphInspectorTab.inspector.glyphInfo.factor.set("Factor:")
 
-				# set the add rule fields to empty
-				self.glyphInspectorTab.inspector.addRule.subCategory.select.setItems([])
-				self.glyphInspectorTab.inspector.addRule.subCategory.select.enable(False)
-				self.glyphInspectorTab.inspector.addRule.case.select.setItems([])
-				self.glyphInspectorTab.inspector.addRule.case.select.enable(False)
-				self.glyphInspectorTab.inspector.addRule.factor.select.set("")
-				self.glyphInspectorTab.inspector.addRule.factor.select.enable(False)
-				self.glyphInspectorTab.inspector.addRule.addButton.enable(False)
+			# set the add rule fields to empty
+			self.glyphInspectorTab.inspector.addRule.subCategory.select.setItems([])
+			self.glyphInspectorTab.inspector.addRule.subCategory.select.enable(False)
+			self.glyphInspectorTab.inspector.addRule.case.select.setItems([])
+			self.glyphInspectorTab.inspector.addRule.case.select.enable(False)
+			self.glyphInspectorTab.inspector.addRule.filter.select.set("")
+			self.glyphInspectorTab.inspector.addRule.filter.select.enable(False)
+			self.glyphInspectorTab.inspector.addRule.referenceGlyph.select.set("")
+			self.glyphInspectorTab.inspector.addRule.referenceGlyph.select.enable(False)
+			self.glyphInspectorTab.inspector.addRule.factor.select.set("")
+			self.glyphInspectorTab.inspector.addRule.factor.select.enable(False)
+			self.glyphInspectorTab.inspector.addRule.addButton.enable(False)
 
-			if len(self.font.selectedLayers) == 1:
-				layer = self.font.selectedLayers[0]
-				self.glyphInspectorTab.inspector.infoText.set("")
-				self.glyphInspectorTab.inspector.glyphView.layer = layer
-				self.glyphInspectorTab.inspector.glyphName.set(layer.parent.name)
-				self.glyphInspectorTab.inspector.glyphInfo.category.set("Category: %s" % layer.parent.category)
-				self.glyphInspectorTab.inspector.glyphInfo.subCategory.set("Subcategory: %s" % layer.parent.subCategory)
-				self.glyphInspectorTab.inspector.glyphInfo.case.set("Case: %s" % self.cases[layer.parent.case])
-				self.InspectorTabGlyphInfo.layer = layer
-				self.InspectorTabGlyphInfo.set_exception_factor()
+		elif len(self.font.selectedLayers) == 1:
+			layer = self.font.selectedLayers[0]
+			self.glyphInspectorTab.inspector.infoText.set("")
+			self.glyphInspectorTab.inspector.glyphView.layer = layer
+			self.glyphInspectorTab.inspector.glyphName.set(layer.parent.name)
+			self.InspectorTabGlyphInfo.layer = layer
+			self.InspectorTabGlyphInfo.glyph = layer.parent
+			self.InspectorTabGlyphInfo.set_exception_settings()
 
-				# set the add rule fields to the current layer values
-				# make a list with "Any" and the current layer's subcategory if the subcategory is not "None"
-				subcategory_list = ["Any"]
-				if layer.parent.subCategory:
-					subcategory_list.append(layer.parent.subCategory)
+			# set the add rule fields to the current layer values
+			# make a list with "Any" and the current layer's subcategory if the subcategory is not "None"
+			subcategory_list = ["Any"]
+			if layer.parent.subCategory:
+				subcategory_list.append(layer.parent.subCategory)
 
-				self.glyphInspectorTab.inspector.addRule.subCategory.select.setItems(subcategory_list)
-				if layer.parent.subCategory:
-					self.glyphInspectorTab.inspector.addRule.subCategory.select.setItem(layer.parent.subCategory)
-				self.glyphInspectorTab.inspector.addRule.subCategory.select.enable(True)
-				self.glyphInspectorTab.inspector.addRule.case.select.setItems(
-					["Any", self.cases[layer.parent.case]]
-				)
-				self.glyphInspectorTab.inspector.addRule.case.select.setItem(self.cases[layer.parent.case])
-				self.glyphInspectorTab.inspector.addRule.case.select.enable(True)
-				self.glyphInspectorTab.inspector.addRule.factor.select.set(
-					self.glyphInspectorTab.inspector.glyphInfo.factor.get().replace("Factor: ", "")
-				)
-				self.glyphInspectorTab.inspector.addRule.factor.select.enable(True)
-				self.glyphInspectorTab.inspector.addRule.addButton.enable(True)
+			self.glyphInspectorTab.inspector.addRule.subCategory.select.setItems(subcategory_list)
+			if layer.parent.subCategory:
+				self.glyphInspectorTab.inspector.addRule.subCategory.select.setItem(layer.parent.subCategory)
+			self.glyphInspectorTab.inspector.addRule.subCategory.select.enable(True)
+			self.glyphInspectorTab.inspector.addRule.case.select.setItems(
+				["Any", self.cases[layer.parent.case]]
+			)
+			self.glyphInspectorTab.inspector.addRule.case.select.setItem(self.cases[layer.parent.case])
+			self.glyphInspectorTab.inspector.addRule.case.select.enable(True)
+			self.glyphInspectorTab.inspector.addRule.factor.select.set(
+				self.glyphInspectorTab.inspector.glyphInfo.factor.get().replace("Factor: ", "")
+			)
+			self.glyphInspectorTab.inspector.addRule.factor.select.enable(True)
+			self.glyphInspectorTab.inspector.addRule.addButton.enable(True)
 
 	@objc.python_method
 	def add_font_rule_from_glyph_inspector(self, sender):
+		if not self.check_reference_glyph(self.glyphInspectorTab.inspector.addRule.referenceGlyph.select):
+			return
 		# call the add font rule method with the values selected in the addRule section of the glyph inspector
 		category = self.font.selectedLayers[0].parent.category
 		subcategory = self.glyphInspectorTab.inspector.addRule.subCategory.select.getItem()
 		case = self.cases.index(self.glyphInspectorTab.inspector.addRule.case.select.getItem())
+		reference_glyph = self.glyphInspectorTab.inspector.addRule.referenceGlyph.select.get()
 		factor = self.glyphInspectorTab.inspector.addRule.factor.select.get()
 		filter = self.glyphInspectorTab.inspector.addRule.filter.select.get()
 
-		self.add_font_rule(self.create_rule_id(), category, subcategory=subcategory, case=case, filter=filter,
+		self.add_font_rule(self.create_rule_id(),
+		                   category,
+		                   subcategory=subcategory,
+		                   case=case,
+		                   reference_glyph=reference_glyph,
+		                   filter=filter,
 		                   factor=factor)
 
 	@objc.python_method
