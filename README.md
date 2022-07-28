@@ -1,5 +1,5 @@
 # HTLS Manager (Alpha)
-This plugin is the central hub for your HT Letterspacer setup.
+This plugin is the central hub for your [HT Letterspacer](https://letterspacer.huertatipografica.com) setup.
 
 Features:
 - Easily manage font spacing rules
