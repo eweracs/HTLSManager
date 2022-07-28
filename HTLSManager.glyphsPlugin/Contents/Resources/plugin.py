@@ -93,6 +93,7 @@ class HTLSManager(GeneralPlugin):
 		self.default_profile = {
 			"Letter": {
 				self.create_rule_id(): {
+					"script": "all",
 					"subcategory": "Any",
 					"case": 1,
 					"value": 1.25,
@@ -100,6 +101,7 @@ class HTLSManager(GeneralPlugin):
 					"filter": ""
 				},
 				self.create_rule_id(): {
+					"script": "all",
 					"subcategory": "Any",
 					"case": 2,
 					"value": 1,
@@ -107,6 +109,7 @@ class HTLSManager(GeneralPlugin):
 					"filter": ""
 				},
 				self.create_rule_id(): {
+					"script": "all",
 					"subcategory": "Any",
 					"case": 3,
 					"value": 1.2,
@@ -116,6 +119,7 @@ class HTLSManager(GeneralPlugin):
 			},
 			"Number": {
 				self.create_rule_id(): {
+					"script": "all",
 					"subcategory": "Decimal Digit",
 					"case": 1,
 					"value": 1.25,
@@ -123,6 +127,7 @@ class HTLSManager(GeneralPlugin):
 					"filter": ""
 				},
 				self.create_rule_id(): {
+					"script": "all",
 					"subcategory": "Decimal Digit",
 					"case": 2,
 					"value": 1.25,
@@ -130,6 +135,7 @@ class HTLSManager(GeneralPlugin):
 					"filter": ""
 				},
 				self.create_rule_id(): {
+					"script": "all",
 					"subcategory": "Decimal Digit",
 					"case": 4,
 					"value": 0.8,
