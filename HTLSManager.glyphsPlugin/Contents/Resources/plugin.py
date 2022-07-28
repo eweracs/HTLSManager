@@ -650,6 +650,8 @@ class HTLSManager(GeneralPlugin):
 		self.leftGlyphView.glyphInfo.set_exception_factor()
 		self.rightGlyphView.glyphInfo.set_exception_factor()
 
+		self.check_for_conflicting_rules()
+
 	@objc.python_method
 	def rebuild_font_rules(self, new_rules):
 		for category in self.categories:
