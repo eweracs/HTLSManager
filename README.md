@@ -1,4 +1,4 @@
-# HTLS Manager
+# HTLS Manager (Alpha)
 This plugin is the central hub for your HT Letterspacer setup.
 
 Features:
