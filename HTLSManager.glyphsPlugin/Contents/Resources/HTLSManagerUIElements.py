@@ -84,7 +84,7 @@ class HTLSGlyphView:
 		self.view_group.glyphInfo.case.set("Case: %s" % self.parent.cases[self.glyph.case])
 
 		self.glyphInfo.layer = self.glyph.layers[self.master.id]
-		self.glyphInfo.set_exception_factor()
+		self.glyphInfo.set_exception_settings()
 
 	def update_layer(self, master):
 		self.master = master
@@ -122,25 +122,33 @@ class HTLSGlyphInfo:
 		self.info_group.case = TextBox("auto",
 		                               "Case: %s" % self.parent.cases[self.glyph.case],
 		                               sizeStyle="small")
+		self.info_group.referenceGlyph = TextBox("auto", "Reference glyph: None", sizeStyle="small")
 		self.info_group.factor = TextBox("auto", "Factor: 1.0", sizeStyle="small")
 
-		self.set_exception_factor()
+		self.set_exception_settings()
 
 		info_rules = [
 			"H:|-margin-[category]",
 			"H:|-margin-[subCategory]",
 			"H:|-margin-[case]",
+			"H:|-margin-[referenceGlyph]",
 			"H:|-margin-[factor]",
-			"V:|-margin-[category]-[subCategory]-[case]-[factor]|",
+			"V:|-margin-[category]-[subCategory]-[case]-[referenceGlyph]-[factor]|",
 		]
 
 		self.info_group.addAutoPosSizeRules(info_rules, self.parent.metrics)
 
-	def set_exception_factor(self):
+	def set_exception_settings(self):
+		self.info_group.category.set("Category: %s" % self.glyph.category)
+		self.info_group.subCategory.set("Subcategory: %s" % self.glyph.subCategory)
+		self.info_group.case.set("Case: %s" % self.parent.cases[self.glyph.case])
+
 		rule = HTLSEngine(self.layer).find_exception()
 		if rule:
+			self.info_group.referenceGlyph.set("Reference Glyph: %s" % rule["referenceGlyph"])
 			self.info_group.factor.set("Factor: %s" % float(rule["value"]))
 		else:
+			self.info_group.referenceGlyph.set("Reference glyph: None")
 			self.info_group.factor.set("Factor: 1.0")
 
 
