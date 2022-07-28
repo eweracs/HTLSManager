@@ -59,6 +59,12 @@ class HTLSManager(GeneralPlugin):
 			} for glyph in self.font.glyphs
 		}
 
+		# Make a list of all scripts in the font
+		self.scripts = ["all"]
+		for glyph in self.font.glyphs:
+			if glyph.script and glyph.script not in self.scripts:
+				self.scripts.append(glyph.script)
+
 		# Make a list of all categories of the glyphs in the font
 		self.categories = ["Letter", "Number", "Punctuation", "Symbol", "Mark"]
 
@@ -178,12 +184,24 @@ class HTLSManager(GeneralPlugin):
 		self.fontRulesTab.title = TextBox("auto", "Spacing rules")
 		self.fontRulesTab.helpButton = HelpButton("auto", callback=self.font_rules_help)
 
+		self.fontRulesTab.scripts = Group("auto")
+		self.fontRulesTab.scripts.title = TextBox("auto", "Script:")
+		self.fontRulesTab.scripts.select = PopUpButton("auto", self.scripts, callback=self.select_script)
+
+		scripts_rules = [
+			"H:|[title]-margin-[select]|",
+			"V:|[title]",
+			"V:|[select]|",
+		]
+
+		self.fontRulesTab.scripts.addAutoPosSizeRules(scripts_rules, self.metrics)
+
 		self.fontRulesTab.profiles = Group("auto")
 		self.fontRulesTab.profiles.title = TextBox("auto", "Load profile:")
-		self.fontRulesTab.profiles.selector = PopUpButton("auto",
-		                                                  ["Choose..."] + [profile for profile in
-		                                                                   self.user_profiles],
-		                                                  callback=self.load_profile)
+		self.fontRulesTab.profiles.select = PopUpButton("auto",
+		                                                ["Choose..."] + [profile for profile in
+		                                                                 self.user_profiles],
+		                                                callback=self.load_profile)
 
 		self.fontRulesTab.profiles.options = ActionButton("auto",
 		                                                  [dict(title="Save profile...",
@@ -198,9 +216,9 @@ class HTLSManager(GeneralPlugin):
 		                                                  )
 
 		profiles_rules = [
-			"H:|[title]-margin-[selector(160)]-[options]|",
+			"H:|[title]-margin-[select(160)]-[options]|",
 			"V:|[title]",
-			"V:|[selector]|",
+			"V:|[select]|",
 			"V:|[options]"
 		]
 
@@ -540,6 +558,10 @@ class HTLSManager(GeneralPlugin):
 		self.fontRulesHelpView.open(parentView=self.fontRulesTab.helpButton, preferredEdge="bottom")
 
 	@objc.python_method
+	def select_script(self, sender):
+		pass
+
+	@objc.python_method
 	def add_font_rule_callback(self, sender):
 		for category in self.categories:
 			if getattr(self.fontRulesTab, category).addButton == sender:
@@ -573,7 +595,7 @@ class HTLSManager(GeneralPlugin):
 
 		self.write_font_rules()
 
-		self.fontRulesTab.profiles.selector.setItem("Choose...")
+		self.fontRulesTab.profiles.select.setItem("Choose...")
 
 		self.check_for_conflicting_rules()
 
@@ -602,7 +624,7 @@ class HTLSManager(GeneralPlugin):
 
 		self.leftGlyphView.glyphInfo.set_exception_factor()
 		self.rightGlyphView.glyphInfo.set_exception_factor()
-		self.fontRulesTab.profiles.selector.setItem("Choose...")
+		self.fontRulesTab.profiles.select.setItem("Choose...")
 		self.check_for_conflicting_rules()
 
 	@objc.python_method
@@ -1133,8 +1155,8 @@ class HTLSManager(GeneralPlugin):
 				                        informativeText="Profile \"%s\" already exists." % profile_name):
 					return
 			self.user_profiles[profile_name] = self.font_rules
-			self.fontRulesTab.profiles.selector.setItems(["Choose..."] + list(self.user_profiles.keys()))
-			self.fontRulesTab.profiles.selector.setItem(profile_name)
+			self.fontRulesTab.profiles.select.setItems(["Choose..."] + list(self.user_profiles.keys()))
+			self.fontRulesTab.profiles.select.setItem(profile_name)
 			Glyphs.defaults["com.eweracs.HTLSManager.userProfiles"] = self.user_profiles
 
 	@objc.python_method
@@ -1201,7 +1223,7 @@ class HTLSManager(GeneralPlugin):
 					self.user_profiles[new_profile_name] = self.user_profiles[profile_name]
 					del self.user_profiles[profile_name]
 					self.profile_groups[i].title.set(new_profile_name)
-					self.fontRulesTab.profiles.selector.setItems(["Choose..."] + list(self.user_profiles.keys()))
+					self.fontRulesTab.profiles.select.setItems(["Choose..."] + list(self.user_profiles.keys()))
 					Glyphs.defaults["com.eweracs.HTLSManager.userProfiles"] = self.user_profiles
 					self.manage_profiles_sheet.resize(1, 1)
 				break
@@ -1219,7 +1241,7 @@ class HTLSManager(GeneralPlugin):
 				del self.profile_groups[i]
 				del self.delete_profile_buttons[i]
 				break
-		self.fontRulesTab.profiles.selector.setItems(["Choose..."] + list(self.user_profiles.keys()))
+		self.fontRulesTab.profiles.select.setItems(["Choose..."] + list(self.user_profiles.keys()))
 		Glyphs.defaults["com.eweracs.HTLSManager.userProfiles"] = self.user_profiles
 
 	@objc.python_method
@@ -1229,7 +1251,6 @@ class HTLSManager(GeneralPlugin):
 
 	@objc.python_method
 	def import_config_file(self, sender):
-
 		current_path = self.font.filepath
 		config_file_path = GetOpenFile(message="Import autospace.py file", filetypes=["py"], path=current_path)
 		if config_file_path is None:
@@ -1245,7 +1266,6 @@ class HTLSManager(GeneralPlugin):
 
 	@objc.python_method
 	def export_config_file(self, sender):
-
 		# get the font file name without the extension
 		font_file_name = os.path.basename(self.font.filepath).split(".")[0]
 
