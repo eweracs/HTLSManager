@@ -7,6 +7,8 @@ from HTLSLibrary import *
 
 class HTLSGlyphView:
 	def __init__(self, parent, glyph_name, glyphs, master):
+		if glyph_name not in glyphs:
+			glyph_name = glyphs[0].name
 		self.parent = parent
 		self.glyphs = glyphs
 		self.glyph = glyphs[glyph_name]
@@ -102,6 +104,8 @@ class HTLSGlyphView:
 
 class HTLSGlyphInfo:
 	def __init__(self, parent, glyph_name, glyphs, master):
+		if glyph_name not in glyphs:
+			glyph_name = glyphs[0].name
 		self.parent = parent
 		self.glyphs = glyphs
 		self.glyph = glyphs[glyph_name]
