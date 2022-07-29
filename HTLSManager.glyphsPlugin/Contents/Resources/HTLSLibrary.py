@@ -166,6 +166,8 @@ class HTLSEngine:
 		self.master = layer.master
 		self.layer = layer
 		self.glyph = layer.parent
+		if not self.glyph.name:
+			return
 		self.reference_layer = layer
 		self.minYref = None
 		self.maxYref = None
@@ -191,7 +193,6 @@ class HTLSEngine:
 
 		self.l_polygon = None
 		self.r_polygon = None
-
 		if ".tosf" in self.glyph.name or ".tf" in self.glyph.name \
 				or self.glyph.widthMetricsKey or self.layer.widthMetricsKey:
 			self.tabular_width = True
