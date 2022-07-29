@@ -178,10 +178,6 @@ class HTLSEngine:
 		self.tabular_width = False
 		self.skip_LSB = False
 		self.skip_RSB = False
-		self.paramArea = int(self.master.customParameters["paramArea"] or 400)
-		self.paramDepth = int(self.master.customParameters["paramDepth"] or 12)
-		self.paramOver = 0  # self.master.customParameters["paramOver"] or 0
-		self.paramFreq = 4
 		self.xHeight = int(self.master.xHeight)
 		self.angle = layer.italicAngle
 		self.upm = int(self.master.font.upm)
@@ -190,6 +186,18 @@ class HTLSEngine:
 
 		self.config = read_config(self.font)
 		self.master_rules = self.master.userData["HTLSManagerMasterRules"]
+
+		try:
+			self.paramArea = int(self.master.customParameters["paramArea"] or 400)
+			self.paramDepth = int(self.master.customParameters["paramDepth"] or 12)
+		except:
+			Message(title="Error reading master parameters",
+			        message="Please only use integer values with no decimals for area and depth parameters. Using "
+			                "default values instead.")
+			self.paramArea = 400
+			self.paramDepth = 12
+		self.paramOver = 0  # self.master.customParameters["paramOver"] or 0
+		self.paramFreq = 4  # self.master.customParameters["paramFreq"] or 4
 
 		self.l_polygon = None
 		self.r_polygon = None
