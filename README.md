@@ -14,7 +14,9 @@ Features:
 
 Todo:
 - Expand functionality for separate writing systems
-- Detect change of frontmost font
 - accomodate paramOver (?)
+
+Known bugs:
+- Changing the frontmost font can result in crashes and unexpected behaviour. Still trying to figure out how to deal with this.
 
 ![Visually adjust parameters](HTLSManager.png)
