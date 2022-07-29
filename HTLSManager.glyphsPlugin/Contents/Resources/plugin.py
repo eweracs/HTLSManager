@@ -531,8 +531,8 @@ class HTLSManager(GeneralPlugin):
 		self.w.bind("close", self.close)
 
 		Glyphs.addCallback(self.ui_update, UPDATEINTERFACE)
-		Glyphs.addCallback(self.close_window, DOCUMENTOPENED)
-		Glyphs.addCallback(self.close_window, DOCUMENTWILLCLOSE)
+		# Glyphs.addCallback(self.close_window, DOCUMENTOPENED)
+		# Glyphs.addCallback(self.close_window, DOCUMENTWILLCLOSE)
 
 	@objc.python_method
 	def font_rules_help(self, sender):
@@ -941,9 +941,9 @@ class HTLSManager(GeneralPlugin):
 	@objc.python_method
 	def ui_update(self, sender):
 		# check if the font was switched
-		if self.font != Glyphs.font:
-			self.w.close()
-			return
+		# if self.font != Glyphs.font:
+		# 	self.w.close()
+		# 	return
 		# check if the master was switched
 		if self.currentMasterID != self.font.selectedFontMaster.id:
 			self.currentMasterID = self.font.selectedFontMaster.id
