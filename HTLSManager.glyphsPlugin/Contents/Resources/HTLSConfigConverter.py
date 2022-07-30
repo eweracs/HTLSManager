@@ -20,7 +20,6 @@ def convert_config_to_dict(config_file_path, glyphs, subcategories):
 
 	config_dict = {category: {} for category in categories}
 	missing_references = []
-	ignored_rules = 0
 
 	try:
 		with open(config_file_path) as config_file:
@@ -39,24 +38,15 @@ def convert_config_to_dict(config_file_path, glyphs, subcategories):
 				reference_glyph = config_dict[category][key]["referenceGlyph"]
 				if len(reference_glyph) > 0 and reference_glyph not in glyphs:
 					print(
-						"Ignoring rule with missing reference glyph: %s" % config_dict[category][key]["referenceGlyph"]
+						"Missing reference glyph: %s" % config_dict[category][key]["referenceGlyph"]
 					)
 					if reference_glyph not in missing_references:
 						missing_references.append(reference_glyph)
-					del config_dict[category][key]
-					ignored_rules += 1
 
 				elif config_dict[category][key]["subcategory"] not in subcategories[category]:
-					print("Ignoring rule with missing subcategory: %s" % config_dict[category][key]["subcategory"])
-					del config_dict[category][key]
-					ignored_rules += 1
+					print("Missing subcategory: %s" % config_dict[category][key]["subcategory"])
 
-		if len(missing_references) > 0:
-			notification_message = "%s rules ignored." % ignored_rules
-		else:
-			notification_message = "No invalid rules found."
-
-		Glyphs.showNotification("Import successful", "%s Detailed report in macro window." % notification_message)
+		Glyphs.showNotification("Import successful", "Detailed report in macro window.")
 
 	except Exception as e:
 		print(e)

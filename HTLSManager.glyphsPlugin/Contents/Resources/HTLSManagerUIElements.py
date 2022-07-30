@@ -229,38 +229,52 @@ class HTLSParameterSlider:
 
 
 class HTLSFontRuleGroup:
-	def __init__(self, parent, font_rules, category, rule):
+	def __init__(self, parent, font_rules, category, rule_id):
 		self.font_rules = font_rules
 		self.parent = parent
 		self.category = category
-		self.rule = rule
+		self.rule_id = rule_id
 
-		if self.rule not in self.font_rules[self.category]:
+		if self.rule_id not in self.font_rules[self.category]:
 			return
 
-		self.current_rule = self.font_rules[self.category][self.rule]
+		self.current_rule = self.font_rules[self.category][self.rule_id]
+
+		self.sub_category = self.current_rule["subcategory"]
+		self.case = self.current_rule["case"]
+		self.filter = self.current_rule["filter"]
+		self.reference_glyph = self.current_rule["referenceGlyph"]
+		self.factor = str(round(float(self.current_rule["value"]), 2)).replace(",", ".")
+
+		if self.sub_category not in parent.sub_categories:
+			parent.sub_categories[self.category].append(self.sub_category)
+		if self.reference_glyph and self.reference_glyph not in parent.font.glyphs:
+			self.reference_glyph = "(Invalid)"
+
+
 		self.rule_group = Group("auto")
 		self.rule_group.subcategory = PopUpButton("auto", self.parent.sub_categories[self.category],
 		                                          callback=self.parent.update_font_rule)
 		self.rule_group.case = PopUpButton("auto", self.parent.cases, callback=self.parent.update_font_rule)
 		self.rule_group.value = EditText("auto",
 		                                 continuous=False,
-		                                 text=str(round(float(self.current_rule["value"]), 2)).replace(",", "."),
+		                                 text=self.factor,
 		                                 callback=self.parent.update_font_rule)
 		self.rule_group.filter = EditText("auto",
 		                                  continuous=False,
 		                                  placeholder="None",
-		                                  text=self.current_rule["filter"],
+		                                  text=self.filter,
 		                                  callback=self.parent.update_font_rule)
-		self.rule_group.removeButton = Button("auto", "Remove rule",
+		self.rule_group.removeButton = Button("auto",
+		                                      "Remove rule",
 		                                      callback=self.parent.remove_font_rule_callback)
 		self.rule_group.referenceGlyph = ComboBox("auto",
 		                                          [glyph.name for glyph in self.parent.font.glyphs],
 		                                          callback=self.parent.update_font_rule)
 
-		self.rule_group.subcategory.setItem(self.current_rule["subcategory"])
-		self.rule_group.case.set(self.current_rule["case"])
-		self.rule_group.referenceGlyph.set(self.current_rule["referenceGlyph"])
+		self.rule_group.subcategory.setItem(self.sub_category)
+		self.rule_group.case.set(self.case)
+		self.rule_group.referenceGlyph.set(self.reference_glyph)
 
 		group_rules = [
 			"H:|-margin-[subcategory(116)]-margin-[case]-margin-[filter(==value)]-margin-[referenceGlyph(90)]-margin-"
@@ -284,7 +298,7 @@ class HTLSFontRuleGroup:
 		self.parent.font_rules_elements.add(self.rule_group.removeButton)
 
 		# add the group to the rule group dictionary with ID
-		self.parent.font_rules_groups[self.rule] = self.rule_group
+		self.parent.font_rules_groups[self.rule_id] = self.rule_group
 
 
 class HTLSMasterRuleGroup:
