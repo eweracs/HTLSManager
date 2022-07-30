@@ -1,5 +1,6 @@
 # HTLS Manager (Alpha)
 This plugin is the central hub for your [HT Letterspacer](https://letterspacer.huertatipografica.com) setup.
+Developed for [Glyphs 3](Https://glyphsapp.com). Not compatible with Glyphs 2.
 
 Features:
 - Easily manage font spacing rules
