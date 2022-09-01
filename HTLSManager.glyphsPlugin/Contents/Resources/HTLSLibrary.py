@@ -202,7 +202,8 @@ class HTLSEngine:
 		self.l_polygon = None
 		self.r_polygon = None
 		if ".tosf" in self.glyph.name or ".tf" in self.glyph.name \
-				or self.glyph.widthMetricsKey or self.layer.widthMetricsKey:
+				or self.glyph.widthMetricsKey or self.layer.widthMetricsKey \
+				or self.font.customParameters["isFixedPitch"]:
 			self.tabular_width = True
 			self.output += "Using fixed width: %s.\n" % int(self.layer.width)
 
