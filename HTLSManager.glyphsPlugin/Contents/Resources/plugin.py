@@ -206,33 +206,31 @@ class HTLSManager(GeneralPlugin):
 
 		self.fontRulesTab.profiles.addAutoPosSizeRules(profiles_rules, self.metrics)
 
-		self.category_groups = {}
 		self.font_rules_groups = {}
 		self.font_rules_elements = set()
 
 		# add one vanilla group per category in self.categories
 		# then add a vanilla group to self.w for each category
-		category_stack_views = []
 		for category in self.categories:
 			category_group = Group("auto")
 			category_group.title = TextBox("auto", category)
 			# add a button to add a new rule for the category
 			category_group.addButton = Button("auto", "Add rule", callback=self.add_font_rule_callback)
 
-			rule_stack_views = []
+			stack_views = []
 			for rule in self.font_rules[category]:
-				rule_stack_views.append(dict(view=HTLSFontRuleGroup(self,
+				stack_views.append(dict(view=HTLSFontRuleGroup(self,
 				                                               self.font_rules,
 				                                               category,
 				                                               rule
 				                                               ).rule_group))
 
 			category_group.stackView = VerticalStackView("auto",
-			                                             views=rule_stack_views,
+			                                             views=stack_views,
 			                                             spacing=10,
 			                                             edgeInsets=(10, 10, 10, 10))
 
-			category_group_rules = [
+			group_rules = [
 				"H:|-margin-[title]-margin-|",
 				"H:|-margin-[stackView]|",
 				"H:|-20-[addButton]",
@@ -240,28 +238,26 @@ class HTLSManager(GeneralPlugin):
 
 			]
 
-			category_group.addAutoPosSizeRules(category_group_rules, self.metrics)
+			category_group.addAutoPosSizeRules(group_rules, self.metrics)
 
-			category_stack_views.append(dict(view=category_group))
-			self.category_groups[category] = category_group
-
-		self.fontRulesTab.categoryStackView = VerticalStackView("auto",
-		                                                        views=category_stack_views,
-		                                                        spacing=10,
-		                                                        edgeInsets=(10, 10, 10, 10))
+			setattr(self.fontRulesTab, category, category_group)
 
 		self.fontRulesTab.conflictCheckText = TextBox("auto", "No conflicting rules detected.")
 
 		font_tab_rules = [
 			"H:|-margin-[title]-margin-[helpButton]",
 			"H:[profiles]-margin-|",
-			"H:|-margin-[categoryStackView]-margin-|",
 			"H:|-margin-[conflictCheckText]-margin-|",
 			"V:|-margin-[profiles]",
-			"V:|-margin-[helpButton]",
-			"V:|-margin-[title]-margin-[categoryStackView]-margin-[conflictCheckText]-margin-|"
+			"V:|-margin-[helpButton]"
 		]
 
+		# for each category group, add a rule to the font_tab_rules list
+		for category in self.categories:
+			font_tab_rules.append("H:|-margin-[%s]-margin-|" % category)
+		# make a vertical rule combining all category groups
+		font_tab_rules.append("V:|-margin-[title]-margin-[%s]-margin-[conflictCheckText]-margin-|"
+		                      % "]-margin-[".join(self.categories))
 
 		self.fontRulesTab.addAutoPosSizeRules(font_tab_rules, self.metrics)
 
@@ -287,27 +283,27 @@ class HTLSManager(GeneralPlugin):
 			category_group = Group("auto")
 			category_group.title = TextBox("auto", category)
 
-			rule_stack_views = []
+			stack_views = []
 			for rule in self.font_rules[category]:
-				rule_stack_views.append(dict(view=HTLSMasterRuleGroup(self,
+				stack_views.append(dict(view=HTLSMasterRuleGroup(self,
 				                                                 self.font_rules,
 				                                                 category,
 				                                                 rule).rule_group)
 				                   )
 
 			category_group.stackView = VerticalStackView("auto",
-			                                             views=rule_stack_views,
+			                                             views=stack_views,
 			                                             spacing=10,
 			                                             edgeInsets=(10, 10, 10, 10))
 
-			category_group_rules = [
+			group_rules = [
 				"H:|-margin-[title]-margin-|",
 				"H:|-margin-[stackView]|",
 				"V:|[title][stackView]-margin-|"
 
 			]
 
-			category_group.addAutoPosSizeRules(category_group_rules, self.metrics)
+			category_group.addAutoPosSizeRules(group_rules, self.metrics)
 
 			setattr(self.masterRulesTab, category, category_group)
 
@@ -1163,10 +1159,10 @@ class HTLSManager(GeneralPlugin):
 	def load_profile(self, sender):
 		profile_name = sender.getItem()
 		if profile_name in self.user_profiles:
-			new_rules = dict(dict(self.user_profiles)[profile_name])
+			new_rules = self.user_profiles[profile_name]
 			self.rebuild_font_rules(new_rules)
 			self.fontRulesTab.profiles.selector.setItem(profile_name)
-			self.font_rules = dict(new_rules)
+			self.font_rules = new_rules
 			self.write_font_rules()
 
 	@objc.python_method
@@ -1187,7 +1183,7 @@ class HTLSManager(GeneralPlugin):
 				if not dialogs.askYesNo(messageText="Overwrite profile?",
 				                        informativeText="Profile \"%s\" already exists." % profile_name):
 					return
-			self.user_profiles[profile_name] = dict(self.font_rules)
+			self.user_profiles[profile_name] = self.font_rules
 			self.fontRulesTab.profiles.selector.setItems(["Choose..."] + list(self.user_profiles.keys()))
 			self.fontRulesTab.profiles.selector.setItem(profile_name)
 			Glyphs.defaults["com.eweracs.HTLSManager.userProfiles"] = self.user_profiles
