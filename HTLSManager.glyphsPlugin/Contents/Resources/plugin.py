@@ -3,16 +3,17 @@
 from __future__ import division, print_function, unicode_literals
 import objc
 import os
-from GlyphsApp import *
-from GlyphsApp.plugins import *
+import uuid
+from GlyphsApp import Glyphs, GLYPH_MENU, UPDATEINTERFACE, Message, AskString, GetOpenFile, GetSaveFile
+from GlyphsApp.plugins import GeneralPlugin
 from GlyphsApp.UI import GlyphView
-from vanilla import *
-from vanilla import dialogs
-from AppKit import NSColor
 
-from HTLSManagerUIElements import *
-from HTLSConfigConverter import *
-from HTLSLibrary import *
+from vanilla import FloatingWindow, Tabs, TextBox, HelpButton, Group, PopUpButton, ActionButton, Button, VerticalStackView, HorizontalLine, CheckBox, EditText, ComboBox, Popover, Sheet, dialogs
+from AppKit import NSColor, NSMenuItem
+
+from HTLSManagerUIElements import HTLSFontRuleGroup, HTLSMasterRuleGroup, HTLSParameterSlider, HTLSGlyphView, HTLSGlyphInfo
+from HTLSConfigConverter import convert_config_to_dict, convert_dict_to_config
+from HTLSLibrary import HTLSEngine, read_config
 
 
 # TODO: Fixed width option in rules?
@@ -45,12 +46,20 @@ class HTLSManager(GeneralPlugin):
 
 		self.currentMasterID = self.font.selectedFontMaster.id
 
-		self.parameters_dict = {
-			master.id: {
-				"paramArea": int(master.customParameters["paramArea"] or 400),
-				"paramDepth": int(master.customParameters["paramDepth"] or 10)
-			} for master in self.font.masters
-		}
+		self.parameters_dict = {}
+		for master in self.font.masters:
+			try:
+				paramArea = int(master.customParameters["paramArea"])
+			except:
+				paramArea = 400
+			try:
+				paramDepth = int(master.customParameters["paramDepth"])
+			except:
+				paramDepth = 10
+			self.parameters_dict[master.id] = {
+				"paramArea": paramArea,
+				"paramDepth": paramDepth,
+			}
 
 		self.metricsDict = {
 			glyph.name: {

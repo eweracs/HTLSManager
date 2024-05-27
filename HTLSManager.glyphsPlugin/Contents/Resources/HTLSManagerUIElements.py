@@ -1,8 +1,9 @@
-from vanilla import *
+
+from vanilla import Group, ComboBox, TextBox, Slider, EditText, PopUpButton, Button
 from GlyphsApp.UI import GlyphView
 from GlyphsApp import Message
 from AppKit import NSColor
-from HTLSLibrary import *
+from HTLSLibrary import HTLSEngine
 
 
 class HTLSGlyphView:
@@ -250,7 +251,6 @@ class HTLSFontRuleGroup:
 			parent.sub_categories[self.category].append(self.sub_category)
 		if self.reference_glyph and self.reference_glyph not in parent.font.glyphs:
 			self.reference_glyph = "(Invalid)"
-
 
 		self.rule_group = Group("auto")
 		self.rule_group.subcategory = PopUpButton("auto", self.parent.sub_categories[self.category],

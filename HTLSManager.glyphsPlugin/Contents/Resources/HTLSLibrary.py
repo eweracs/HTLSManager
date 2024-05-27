@@ -4,7 +4,7 @@
 from __future__ import division, print_function, unicode_literals
 
 # program dependencies
-from GlyphsApp import *
+from GlyphsApp import Glyphs, Message
 import math
 from Foundation import NSMinX, NSMaxX, NSMinY, NSMaxY, NSMakePoint
 
@@ -517,7 +517,7 @@ class HTLSScript:
 				self.engine = HTLSEngine(layer)
 
 				layer_lsb, layer_rsb = self.engine.current_layer_sidebearings() or [None, None]
-				if layer_lsb == None and layer_rsb == None:
+				if layer_lsb is None and layer_rsb is None:
 					continue
 				layer.LSB, layer.RSB = layer_lsb, layer_rsb
 				layer.syncMetrics()
