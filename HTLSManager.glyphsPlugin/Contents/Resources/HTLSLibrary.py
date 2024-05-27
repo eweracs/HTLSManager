@@ -4,7 +4,7 @@
 from __future__ import division, print_function, unicode_literals
 
 # program dependencies
-from GlyphsApp import *
+from GlyphsApp import Glyphs, Message
 import math
 from Foundation import NSMinX, NSMaxX, NSMinY, NSMaxY, NSMakePoint
 
