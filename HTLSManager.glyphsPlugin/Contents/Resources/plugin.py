@@ -45,12 +45,20 @@ class HTLSManager(GeneralPlugin):
 
 		self.currentMasterID = self.font.selectedFontMaster.id
 
-		self.parameters_dict = {
-			master.id: {
-				"paramArea": int(master.customParameters["paramArea"] or 400),
-				"paramDepth": int(master.customParameters["paramDepth"] or 10)
-			} for master in self.font.masters
-		}
+		self.parameters_dict = {}
+		for master in self.font.masters:
+			try:
+				paramArea = int(master.customParameters["paramArea"])
+			except:
+				paramArea = 400
+			try:
+				paramDepth = int(master.customParameters["paramDepth"])
+			except:
+				paramDepth = 10
+			self.parameters_dict[master.id] = {
+				"paramArea": paramArea,
+				"paramDepth": paramDepth,
+			}
 
 		self.metricsDict = {
 			glyph.name: {
