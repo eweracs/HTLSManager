@@ -18,31 +18,41 @@ class HTLSGlyphView:
 		# add a group with the following elements: a GlyphView, a ComboBox to select the glyph, one text bow each
 		# to show the current left side bearing and right side bearing
 		self.view_group = Group("auto")
-		self.view_group.glyphView = GlyphView("auto",
-		                                      layer=self.glyph.layers[self.master.id],
-		                                      backgroundColor=NSColor.clearColor())
-		self.view_group.glyphSelector = ComboBox("auto",
-		                                         [glyph.name for glyph in self.glyphs],
-		                                         callback=self.glyph_selector_callback)
+		self.view_group.glyphView = GlyphView(
+			"auto",
+			layer=self.glyph.layers[self.master.id],
+			backgroundColor=NSColor.clearColor()
+		)
+		self.view_group.glyphSelector = ComboBox(
+			"auto",
+			[glyph.name for glyph in self.glyphs],
+			callback=self.glyph_selector_callback
+		)
 		self.view_group.glyphSelector.set(self.glyph.name)
 
 		self.view_group.originalLeftSideBearing = TextBox(
-			"auto", "(%s)" % self.parent.metricsDict[self.glyph.name][self.master.id][0], alignment="left"
+			"auto",
+			"(%s)" % self.parent.metricsDict[self.glyph.name][self.master.id][0],
+			alignment="left"
 		)
 		self.view_group.originalRightSideBearing = TextBox(
-			"auto", "(%s)" % self.parent.metricsDict[self.glyph.name][self.master.id][1], alignment="right"
+			"auto",
+			"(%s)" % self.parent.metricsDict[self.glyph.name][self.master.id][1],
+			alignment="right"
 		)
 		self.view_group.padding1 = Group("auto")
 		self.view_group.padding2 = Group("auto")
 
-		self.view_group.currentLeftSideBearing = TextBox("auto",
-		                                                 self.glyph.layers[self.master.id].LSB,
-		                                                 alignment="left"
-		                                                 )
-		self.view_group.currentRightSideBearing = TextBox("auto",
-		                                                  self.glyph.layers[self.master.id].RSB,
-		                                                  alignment="right"
-		                                                  )
+		self.view_group.currentLeftSideBearing = TextBox(
+			"auto",
+			self.glyph.layers[self.master.id].LSB,
+			alignment="left"
+		)
+		self.view_group.currentRightSideBearing = TextBox(
+			"auto",
+			self.glyph.layers[self.master.id].RSB,
+			alignment="right"
+		)
 
 		self.glyphInfo = HTLSGlyphInfo(self.parent, glyph_name, self.glyphs, self.master)
 		self.view_group.glyphInfo = self.glyphInfo.info_group
@@ -114,17 +124,31 @@ class HTLSGlyphInfo:
 		self.layer = self.glyph.layers[master.id]
 
 		self.info_group = Group("auto")
-		self.info_group.category = TextBox("auto",
-		                                   "Category: %s" % self.glyph.category,
-		                                   sizeStyle="small")
-		self.info_group.subCategory = TextBox("auto",
-		                                      "Subcategory: %s" % self.glyph.subCategory,
-		                                      sizeStyle="small")
-		self.info_group.case = TextBox("auto",
-		                               "Case: %s" % self.parent.cases[self.glyph.case],
-		                               sizeStyle="small")
-		self.info_group.referenceGlyph = TextBox("auto", "Reference glyph: None", sizeStyle="small")
-		self.info_group.factor = TextBox("auto", "Factor: 1.0", sizeStyle="small")
+		self.info_group.category = TextBox(
+			"auto",
+			"Category: %s" % self.glyph.category,
+			sizeStyle="small"
+		)
+		self.info_group.subCategory = TextBox(
+			"auto",
+			"Subcategory: %s" % self.glyph.subCategory,
+			sizeStyle="small"
+		)
+		self.info_group.case = TextBox(
+			"auto",
+			"Case: %s" % self.parent.cases[self.glyph.case],
+			sizeStyle="small"
+		)
+		self.info_group.referenceGlyph = TextBox(
+			"auto",
+			"Reference glyph: None",
+			sizeStyle="small"
+		)
+		self.info_group.factor = TextBox(
+			"auto",
+			"Factor: 1.0",
+			sizeStyle="small"
+		)
 
 		self.set_exception_settings()
 
@@ -165,18 +189,25 @@ class HTLSParameterSlider:
 		# add a group with the following elements: a Slider, a TextBox to show the current value of the parameter
 		# to show the current left side bearing and right side bearing
 		self.slider_group = Group("auto")
-		self.slider_group.title = TextBox("auto",
-		                                  "%s (%s)" % (parameter.replace("param", "").title(),
-		                                               self.parent.parameters_dict[self.master_id][self.parameter])
-		                                  )
-		self.slider_group.slider = Slider("auto",
-		                                  minValue=self.min_value,
-		                                  maxValue=self.max_value,
-		                                  callback=self.enter_parameter_callback)
-		self.slider_group.field = EditText("auto",
-		                                   text=self.current_value,
-		                                   continuous=False,
-		                                   callback=self.enter_parameter_callback)
+		self.slider_group.title = TextBox(
+			"auto",
+			"%s (%s)" % (
+				parameter.replace("param", "").title(),
+				self.parent.parameters_dict[self.master_id][self.parameter]
+			)
+		)
+		self.slider_group.slider = Slider(
+			"auto",
+			minValue=self.min_value,
+			maxValue=self.max_value,
+			callback=self.enter_parameter_callback
+		)
+		self.slider_group.field = EditText(
+			"auto",
+			text=self.current_value,
+			continuous=False,
+			callback=self.enter_parameter_callback
+		)
 
 		self.slider_group.slider.set(self.current_value)
 
@@ -224,9 +255,11 @@ class HTLSParameterSlider:
 		self.slider_group.slider.setMaxValue(max_value)
 		self.slider_group.slider.set(current_value)
 		self.slider_group.field.set(current_value)
-		self.slider_group.title.set("%s (%s)" % (self.parameter.replace("param", "").title(),
-		                                         self.parent.parameters_dict[self.master_id][self.parameter])
-		                            )
+		title = "%s (%s)" % (
+			self.parameter.replace("param", "").title(),
+			self.parent.parameters_dict[self.master_id][self.parameter]
+		)
+		self.slider_group.title.set(title)
 
 
 class HTLSFontRuleGroup:
@@ -253,24 +286,39 @@ class HTLSFontRuleGroup:
 			self.reference_glyph = "(Invalid)"
 
 		self.rule_group = Group("auto")
-		self.rule_group.subcategory = PopUpButton("auto", self.parent.sub_categories[self.category],
-		                                          callback=self.parent.update_font_rule)
-		self.rule_group.case = PopUpButton("auto", self.parent.cases, callback=self.parent.update_font_rule)
-		self.rule_group.value = EditText("auto",
-		                                 continuous=False,
-		                                 text=self.factor,
-		                                 callback=self.parent.update_font_rule)
-		self.rule_group.filter = EditText("auto",
-		                                  continuous=False,
-		                                  placeholder="None",
-		                                  text=self.filter,
-		                                  callback=self.parent.update_font_rule)
-		self.rule_group.removeButton = Button("auto",
-		                                      "Remove rule",
-		                                      callback=self.parent.remove_font_rule_callback)
-		self.rule_group.referenceGlyph = ComboBox("auto",
-		                                          [glyph.name for glyph in self.parent.font.glyphs],
-		                                          callback=self.parent.update_font_rule)
+		self.rule_group.subcategory = PopUpButton(
+			"auto",
+			self.parent.sub_categories[self.category],
+			callback=self.parent.update_font_rule
+		)
+		self.rule_group.case = PopUpButton(
+			"auto",
+			self.parent.cases,
+			callback=self.parent.update_font_rule
+		)
+		self.rule_group.value = EditText(
+			"auto",
+			continuous=False,
+			text=self.factor,
+			callback=self.parent.update_font_rule
+		)
+		self.rule_group.filter = EditText(
+			"auto",
+			continuous=False,
+			placeholder="None",
+			text=self.filter,
+			callback=self.parent.update_font_rule
+		)
+		self.rule_group.removeButton = Button(
+			"auto",
+			"Remove rule",
+			callback=self.parent.remove_font_rule_callback
+		)
+		self.rule_group.referenceGlyph = ComboBox(
+			"auto",
+			[glyph.name for glyph in self.parent.font.glyphs],
+			callback=self.parent.update_font_rule
+		)
 
 		self.rule_group.subcategory.setItem(self.sub_category)
 		self.rule_group.case.set(self.case)
@@ -316,11 +364,13 @@ class HTLSMasterRuleGroup:
 		self.rule_group.subcategory = TextBox("auto", self.current_rule["subcategory"])
 		self.rule_group.case = TextBox("auto", self.parent.cases[self.current_rule["case"]])
 		self.rule_group.filter = TextBox("auto", str(self.current_rule["filter"] or "Any"))
-		self.rule_group.value = EditText("auto",
-		                                 continuous=False,
-		                                 text="",
-		                                 placeholder=str(round(float(self.current_rule["value"]), 2)).replace(",", "."),
-		                                 callback=self.parent.update_master_rule)
+		self.rule_group.value = EditText(
+			"auto",
+			continuous=False,
+			text="",
+			placeholder=str(round(float(self.current_rule["value"]), 2)).replace(",", "."),
+			callback=self.parent.update_master_rule
+		)
 		self.rule_group.resetButton = Button("auto", "Reset", callback=self.parent.reset_master_rule)
 		self.rule_group.resetButton.enable(False)
 

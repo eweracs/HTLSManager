@@ -4,12 +4,12 @@ from __future__ import division, print_function, unicode_literals
 import objc
 import os
 import uuid
-from GlyphsApp import Glyphs, GLYPH_MENU, UPDATEINTERFACE, Message, AskString, GetOpenFile, GetSaveFile
+from AppKit import NSColor
+from GlyphsApp import Glyphs, GLYPH_MENU, UPDATEINTERFACE, Message, AskString, GetOpenFile, GetSaveFile, NSMenuItem
 from GlyphsApp.plugins import GeneralPlugin
 from GlyphsApp.UI import GlyphView
 
 from vanilla import FloatingWindow, Tabs, TextBox, HelpButton, Group, PopUpButton, ActionButton, Button, VerticalStackView, HorizontalLine, CheckBox, EditText, ComboBox, Popover, Sheet, dialogs
-from AppKit import NSColor, NSMenuItem
 
 from HTLSManagerUIElements import HTLSFontRuleGroup, HTLSMasterRuleGroup, HTLSParameterSlider, HTLSGlyphView, HTLSGlyphInfo
 from HTLSConfigConverter import convert_config_to_dict, convert_dict_to_config
@@ -169,9 +169,11 @@ class HTLSManager(GeneralPlugin):
 			"margin": 10
 		}
 
-		self.w.tabs = Tabs("auto",
-		                   ["Font rules", "Master rules", "Parameters", "Glyph inspector"],
-		                   callback=self.switch_tabs)
+		self.w.tabs = Tabs(
+			"auto",
+			["Font rules", "Master rules", "Parameters", "Glyph inspector"],
+			callback=self.switch_tabs
+		)
 
 		self.fontRulesTab = self.w.tabs[0]
 		self.masterRulesTab = self.w.tabs[1]
@@ -189,22 +191,34 @@ class HTLSManager(GeneralPlugin):
 
 		self.fontRulesTab.profiles = Group("auto")
 		self.fontRulesTab.profiles.title = TextBox("auto", "Load profile:")
-		self.fontRulesTab.profiles.selector = PopUpButton("auto",
-		                                                  ["Choose..."] + [profile for profile in
-		                                                                   self.user_profiles],
-		                                                  callback=self.load_profile)
+		self.fontRulesTab.profiles.selector = PopUpButton(
+			"auto",
+			["Choose..."] + [profile for profile in self.user_profiles],
+			callback=self.load_profile
+		)
 
-		self.fontRulesTab.profiles.options = ActionButton("auto",
-		                                                  [dict(title="Save profile...",
-		                                                        callback=self.save_profile),
-		                                                   dict(title="Manage profiles",
-		                                                        callback=self.manage_profiles_callback),
-		                                                   "----",
-		                                                   dict(title="Import config file...",
-		                                                        callback=self.import_config_file),
-		                                                   dict(title="Export as config file...",
-		                                                        callback=self.export_config_file)],
-		                                                  )
+		self.fontRulesTab.profiles.options = ActionButton(
+			"auto",
+			[
+				dict(
+					title="Save profile...",
+					callback=self.save_profile
+				),
+				dict(
+					title="Manage profiles",
+					callback=self.manage_profiles_callback
+				),
+				"----",
+				dict(
+					title="Import config file...",
+					callback=self.import_config_file
+				),
+				dict(
+					title="Export as config file...",
+					callback=self.export_config_file
+				)
+			],
+		)
 
 		profiles_rules = [
 			"H:|[title]-margin-[selector(160)]-[options]|",
@@ -228,23 +242,29 @@ class HTLSManager(GeneralPlugin):
 
 			stack_views = []
 			for rule in self.font_rules[category]:
-				stack_views.append(dict(view=HTLSFontRuleGroup(self,
-				                                               self.font_rules,
-				                                               category,
-				                                               rule
-				                                               ).rule_group))
+				stack_views.append(
+					dict(
+						view=HTLSFontRuleGroup(
+							self,
+							self.font_rules,
+							category,
+							rule
+						).rule_group
+					)
+				)
 
-			category_group.stackView = VerticalStackView("auto",
-			                                             views=stack_views,
-			                                             spacing=10,
-			                                             edgeInsets=(10, 10, 10, 10))
+			category_group.stackView = VerticalStackView(
+				"auto",
+				views=stack_views,
+				spacing=10,
+				edgeInsets=(10, 10, 10, 10)
+			)
 
 			group_rules = [
 				"H:|-margin-[title]-margin-|",
 				"H:|-margin-[stackView]|",
 				"H:|-20-[addButton]",
 				"V:|[title][stackView][addButton]-margin-|"
-
 			]
 
 			category_group.addAutoPosSizeRules(group_rules, self.metrics)
@@ -265,8 +285,9 @@ class HTLSManager(GeneralPlugin):
 		for category in self.categories:
 			font_tab_rules.append("H:|-margin-[%s]-margin-|" % category)
 		# make a vertical rule combining all category groups
-		font_tab_rules.append("V:|-margin-[title]-margin-[%s]-margin-[conflictCheckText]-margin-|"
-		                      % "]-margin-[".join(self.categories))
+		font_tab_rules.append(
+			"V:|-margin-[title]-margin-[%s]-margin-[conflictCheckText]-margin-|" % "]-margin-[".join(self.categories)
+		)
 
 		self.fontRulesTab.addAutoPosSizeRules(font_tab_rules, self.metrics)
 
@@ -279,9 +300,11 @@ class HTLSManager(GeneralPlugin):
 		#########################
 
 		self.masterRulesTab.title = TextBox("auto", "Rule exceptions")
-		self.masterRulesTab.masterName = TextBox("auto",
-		                                         "Master: %s" % self.font.selectedFontMaster.name,
-		                                         alignment="right")
+		self.masterRulesTab.masterName = TextBox(
+			"auto",
+			"Master: %s" % self.font.selectedFontMaster.name,
+			alignment="right"
+		)
 
 		self.master_rules_groups = {}
 		self.master_rules_elements = set()
@@ -294,22 +317,28 @@ class HTLSManager(GeneralPlugin):
 
 			stack_views = []
 			for rule in self.font_rules[category]:
-				stack_views.append(dict(view=HTLSMasterRuleGroup(self,
-				                                                 self.font_rules,
-				                                                 category,
-				                                                 rule).rule_group)
-				                   )
+				stack_views.append(
+					dict(
+						view=HTLSMasterRuleGroup(
+							self,
+							self.font_rules,
+							category,
+							rule
+						).rule_group
+					)
+				)
 
-			category_group.stackView = VerticalStackView("auto",
-			                                             views=stack_views,
-			                                             spacing=10,
-			                                             edgeInsets=(10, 10, 10, 10))
+			category_group.stackView = VerticalStackView(
+				"auto",
+				views=stack_views,
+				spacing=10,
+				edgeInsets=(10, 10, 10, 10)
+			)
 
 			group_rules = [
 				"H:|-margin-[title]-margin-|",
 				"H:|-margin-[stackView]|",
 				"V:|[title][stackView]-margin-|"
-
 			]
 
 			category_group.addAutoPosSizeRules(group_rules, self.metrics)
@@ -340,9 +369,11 @@ class HTLSManager(GeneralPlugin):
 		#########################
 
 		self.parametersTab.title = TextBox("auto", "Parameters")
-		self.parametersTab.masterName = TextBox("auto",
-		                                        "Master: %s" % self.font.selectedFontMaster.name,
-		                                        alignment="right")
+		self.parametersTab.masterName = TextBox(
+			"auto",
+			"Master: %s" % self.font.selectedFontMaster.name,
+			alignment="right"
+		)
 
 		# add an action button for options for the current master
 		self.parametersTab.masterOptions = ActionButton("auto", self.action_button_items())
@@ -419,17 +450,21 @@ class HTLSManager(GeneralPlugin):
 		#########################
 
 		self.glyphInspectorTab.title = TextBox("auto", "Glyph Inspector")
-		self.glyphInspectorTab.masterName = TextBox("auto",
-		                                            "Master: %s" % self.font.selectedFontMaster.name,
-		                                            alignment="right")
+		self.glyphInspectorTab.masterName = TextBox(
+			"auto",
+			"Master: %s" % self.font.selectedFontMaster.name,
+			alignment="right"
+		)
 
 		# add a GlyphView to the Inspector tab, which always shows the currently selected glyph
 		self.InspectorTabGlyphInfo = HTLSGlyphInfo(self, "n", self.font.glyphs, self.font.selectedFontMaster)
 
 		self.glyphInspectorTab.inspector = Group("auto")
-		self.glyphInspectorTab.inspector.glyphView = GlyphView("auto",
-		                                                       layer=None,
-		                                                       backgroundColor=NSColor.clearColor())
+		self.glyphInspectorTab.inspector.glyphView = GlyphView(
+			"auto",
+			layer=None,
+			backgroundColor=NSColor.clearColor()
+		)
 		self.glyphInspectorTab.inspector.glyphName = TextBox("auto", "")
 		self.glyphInspectorTab.inspector.infoText = TextBox("auto", "", alignment="center")
 		self.glyphInspectorTab.inspector.paddingTop = Group("auto")
@@ -442,33 +477,45 @@ class HTLSManager(GeneralPlugin):
 		self.glyphInspectorTab.inspector.addRule.subCategory.select = PopUpButton("auto", ["Any"], sizeStyle="small")
 		self.glyphInspectorTab.inspector.addRule.case = Group("auto")
 		self.glyphInspectorTab.inspector.addRule.case.title = TextBox("auto", "Case", sizeStyle="small")
-		self.glyphInspectorTab.inspector.addRule.case.select = PopUpButton("auto",
-		                                                                   ["Any",
-		                                                                    "Lowercase"],
-		                                                                   sizeStyle="small")
+		self.glyphInspectorTab.inspector.addRule.case.select = PopUpButton(
+			"auto",
+			["Any", "Lowercase"],
+			sizeStyle="small"
+		)
 		self.glyphInspectorTab.inspector.addRule.filter = Group("auto")
 		self.glyphInspectorTab.inspector.addRule.filter.title = TextBox("auto", "Filter", sizeStyle="small")
-		self.glyphInspectorTab.inspector.addRule.filter.select = EditText("auto",
-		                                                                  "",
-		                                                                  placeholder="None",
-		                                                                  sizeStyle="small")
+		self.glyphInspectorTab.inspector.addRule.filter.select = EditText(
+			"auto",
+			"",
+			placeholder="None",
+			sizeStyle="small"
+		)
 		self.glyphInspectorTab.inspector.addRule.referenceGlyph = Group("auto")
-		self.glyphInspectorTab.inspector.addRule.referenceGlyph.title = TextBox("auto",
-		                                                                        "Reference glyph",
-		                                                                        sizeStyle="small")
+		self.glyphInspectorTab.inspector.addRule.referenceGlyph.title = TextBox(
+			"auto",
+			"Reference glyph",
+			sizeStyle="small"
+		)
 		self.glyphInspectorTab.inspector.addRule.referenceGlyph.select = ComboBox(
-			"auto", [glyph.name for glyph in self.font.glyphs], sizeStyle="small", callback=self.check_reference_glyph
+			"auto",
+			[glyph.name for glyph in self.font.glyphs],
+			sizeStyle="small",
+			callback=self.check_reference_glyph
 		)
 		self.glyphInspectorTab.inspector.addRule.factor = Group("auto")
 		self.glyphInspectorTab.inspector.addRule.factor.title = TextBox("auto", "Factor", sizeStyle="small")
-		self.glyphInspectorTab.inspector.addRule.factor.select = EditText("auto",
-		                                                                  "1",
-		                                                                  sizeStyle="small",
-		                                                                  callback=self.check_factor_is_float)
-		self.glyphInspectorTab.inspector.addRule.addButton = Button("auto",
-		                                                            "Add rule",
-		                                                            sizeStyle="small",
-		                                                            callback=self.add_font_rule_from_glyph_inspector)
+		self.glyphInspectorTab.inspector.addRule.factor.select = EditText(
+			"auto",
+			"1",
+			sizeStyle="small",
+			callback=self.check_factor_is_float
+		)
+		self.glyphInspectorTab.inspector.addRule.addButton = Button(
+			"auto",
+			"Add rule",
+			sizeStyle="small",
+			callback=self.add_font_rule_from_glyph_inspector
+		)
 
 		set_criteria_group_rules = [
 			# title and select, horizontally aligned, vertically on one line, visual format language
@@ -480,8 +527,10 @@ class HTLSManager(GeneralPlugin):
 		self.glyphInspectorTab.inspector.addRule.subCategory.addAutoPosSizeRules(set_criteria_group_rules, self.metrics)
 		self.glyphInspectorTab.inspector.addRule.case.addAutoPosSizeRules(set_criteria_group_rules, self.metrics)
 		self.glyphInspectorTab.inspector.addRule.filter.addAutoPosSizeRules(set_criteria_group_rules, self.metrics)
-		self.glyphInspectorTab.inspector.addRule.referenceGlyph.addAutoPosSizeRules(set_criteria_group_rules,
-		                                                                            self.metrics)
+		self.glyphInspectorTab.inspector.addRule.referenceGlyph.addAutoPosSizeRules(
+			set_criteria_group_rules,
+			self.metrics
+		)
 		self.glyphInspectorTab.inspector.addRule.factor.addAutoPosSizeRules(set_criteria_group_rules, self.metrics)
 
 		add_rule_group_rules = [
@@ -546,17 +595,19 @@ class HTLSManager(GeneralPlugin):
 	@objc.python_method
 	def font_rules_help(self, sender):
 		self.fontRulesHelpView = Popover((1, 1))
-		self.fontRulesHelpView.description = TextBox("auto", "Add spacing rules for the project, "
-		                                                     "with the following criteria/settings:\n\n"
-		                                                     "Subcategory, case, filter, reference glyph, factor.\n\n"
-		                                                     "Subcategory: The glyph's subcategory. Check the Glyph "
-		                                                     "Inspector for help.\n"
-		                                                     "Case: The glyph's case.\n"
-		                                                     "Filter: A string to search for in the glyph's name.\n"
-		                                                     "Reference glyph: The height "
-		                                                     "reference. Leave empty to use the glyph itself.\n"
-		                                                     "Factor: The factor to adjust the base spacing by."
-		                                             )
+		self.fontRulesHelpView.description = TextBox(
+			"auto",
+			"Add spacing rules for the project, "
+			"with the following criteria/settings:\n\n"
+			"Subcategory, case, filter, reference glyph, factor.\n\n"
+			"Subcategory: The glyph's subcategory. Check the Glyph "
+			"Inspector for help.\n"
+			"Case: The glyph's case.\n"
+			"Filter: A string to search for in the glyph's name.\n"
+			"Reference glyph: The height "
+			"reference. Leave empty to use the glyph itself.\n"
+			"Factor: The factor to adjust the base spacing by."
+		)
 
 		help_view_rules = [
 			"H:|-margin-[description(460)]-margin-|",
@@ -574,8 +625,9 @@ class HTLSManager(GeneralPlugin):
 				break
 
 	@objc.python_method
-	def add_font_rule(self, rule_id, category, subcategory="Any", case=0, filter="",
-	                  reference_glyph="", factor=1, font_rules=None):
+	def add_font_rule(
+		self, rule_id, category, subcategory="Any", case=0, filter="",
+		reference_glyph="", factor=1, font_rules=None):
 		if font_rules:
 			self.font_rules[category][rule_id] = font_rules[category][rule_id]
 		else:
@@ -649,8 +701,10 @@ class HTLSManager(GeneralPlugin):
 						# if the sender is the referenceGlyph, check if the glyph exists.
 						if key == "referenceGlyph":
 							if sender.get() not in self.font.glyphs and len(sender.get()) > 0:
-								Message(title="Glyph not found",
-								        message="The glyph %s does not exist in the font." % sender.get())
+								Message(
+									title="Glyph not found",
+									message="The glyph %s does not exist in the font." % sender.get()
+								)
 								sender.set("")
 							self.font_rules[category][rule][key] = sender.get()
 
@@ -659,8 +713,10 @@ class HTLSManager(GeneralPlugin):
 							try:
 								float(sender.get())
 							except ValueError:
-								Message(title="Value must be a number",
-								        message="Please only use numbers, with periods for decimal points.")
+								Message(
+									title="Value must be a number",
+									message="Please only use numbers, with periods for decimal points."
+								)
 								self.font_rules[category][rule][key] = 1
 								sender.set("1")
 							getattr(self.master_rules_groups[rule], key).setPlaceholder(sender.get())
@@ -705,8 +761,10 @@ class HTLSManager(GeneralPlugin):
 					try:
 						float(sender.get())
 					except ValueError:
-						Message(title="Value must be a number",
-						        message="Please only use numbers, with periods for decimal points.")
+						Message(
+							title="Value must be a number",
+							message="Please only use numbers, with periods for decimal points."
+						)
 						sender.set("1")
 					self.font.selectedFontMaster.userData["HTLSManagerMasterRules"][rule] = sender.get()
 					# enable the reset button
@@ -747,15 +805,16 @@ class HTLSManager(GeneralPlugin):
 				for compare_rule_id in self.font_rules[category]:
 					compare_rule = self.font_rules[category][compare_rule_id]
 					if source_rule_id != compare_rule_id \
-							and source_rule["subcategory"] == compare_rule["subcategory"] \
-							and source_rule["case"] == compare_rule["case"] \
-							and source_rule["filter"] == compare_rule["filter"]:
+						and source_rule["subcategory"] == compare_rule["subcategory"] \
+						and source_rule["case"] == compare_rule["case"] \
+						and source_rule["filter"] == compare_rule["filter"]:
 
-						conflict_text = "Conflicting rules in category %s: Subcategory: %s, case: %s, filter: %s" \
-						                % (category,
-						                   source_rule["subcategory"],
-						                   self.cases[source_rule["case"]],
-						                   source_rule["filter"] or "None")
+						conflict_text = "Conflicting rules in category %s: Subcategory: %s, case: %s, filter: %s" % (
+							category,
+							source_rule["subcategory"],
+							self.cases[source_rule["case"]],
+							source_rule["filter"] or "None"
+						)
 
 						self.fontRulesTab.conflictCheckText.set(conflict_text)
 						return False, conflict_text
@@ -766,8 +825,10 @@ class HTLSManager(GeneralPlugin):
 	@objc.python_method
 	def check_reference_glyph(self, sender):
 		if sender.get() not in self.font.glyphs and len(sender.get()) > 0:
-			Message(title="Glyph not found",
-			        message="The glyph %s does not exist in the font." % sender.get())
+			Message(
+				title="Glyph not found",
+				message="The glyph %s does not exist in the font." % sender.get()
+			)
 			sender.set("")
 			return False
 		return True
@@ -797,12 +858,16 @@ class HTLSManager(GeneralPlugin):
 
 	@objc.python_method
 	def update_parameter_ui(self):
-		self.areaSettings.ui_update(self.currentMasterID,
-		                            int(self.font.selectedFontMaster.customParameters["paramArea"]),
-		                            int(self.font.selectedFontMaster.customParameters["paramArea"]) - 100,
-		                            int(self.font.selectedFontMaster.customParameters["paramArea"]) + 100)
-		self.depthSettings.ui_update(self.currentMasterID,
-		                             int(self.font.selectedFontMaster.customParameters["paramDepth"]))
+		self.areaSettings.ui_update(
+			self.currentMasterID,
+			int(self.font.selectedFontMaster.customParameters["paramArea"]),
+			int(self.font.selectedFontMaster.customParameters["paramArea"]) - 100,
+			int(self.font.selectedFontMaster.customParameters["paramArea"]) + 100
+		)
+		self.depthSettings.ui_update(
+			self.currentMasterID,
+			int(self.font.selectedFontMaster.customParameters["paramDepth"])
+		)
 
 		self.toggle_reset_parameters_button()
 
@@ -822,16 +887,19 @@ class HTLSManager(GeneralPlugin):
 	@objc.python_method
 	def link_master(self, master):
 		self.font.selectedFontMaster.userData["HTLSManagerLinkedMaster"] = master.id
-		self.areaSettings.ui_update(master.id, master.customParameters["paramArea"],
-		                            int(master.customParameters["paramArea"]) - 100,
-		                            int(master.customParameters["paramArea"]) + 100)
+		self.areaSettings.ui_update(
+			master.id, master.customParameters["paramArea"],
+			int(master.customParameters["paramArea"]) - 100,
+			int(master.customParameters["paramArea"]) + 100
+		)
 		self.depthSettings.ui_update(master.id, int(master.customParameters["paramDepth"]))
 		self.depthSettings.master_id = self.currentMasterID
 
 	@objc.python_method
 	def interpolate_parameters_callback(self, sender):
-		self.interpolation_masters = [master for master in self.font.masters if master is not
-		                              self.font.selectedFontMaster]
+		self.interpolation_masters = [
+			master for master in self.font.masters if master is not self.font.selectedFontMaster
+		]
 		self.interpolation_sheet = Sheet((240, 220), self.w)
 
 		self.interpolation_sheet.axis = Group("auto")
@@ -842,12 +910,16 @@ class HTLSManager(GeneralPlugin):
 		# add two titles and popups to select the master to interpolate from and to
 		self.interpolation_sheet.masterOne = Group("auto")
 		self.interpolation_sheet.masterOne.title = TextBox("auto", "First master")
-		self.interpolation_sheet.masterOne.select = PopUpButton("auto", [master.name for
-		                                                                 master in self.interpolation_masters])
+		self.interpolation_sheet.masterOne.select = PopUpButton(
+			"auto",
+			[master.name for master in self.interpolation_masters]
+		)
 		self.interpolation_sheet.masterTwo = Group("auto")
 		self.interpolation_sheet.masterTwo.title = TextBox("auto", "Second master")
-		self.interpolation_sheet.masterTwo.select = PopUpButton("auto", [master.name for
-		                                                                 master in self.interpolation_masters])
+		self.interpolation_sheet.masterTwo.select = PopUpButton(
+			"auto",
+			[master.name for master in self.interpolation_masters]
+		)
 
 		# only enable the second master popup if there is more than one master
 		self.interpolation_sheet.masterTwo.select.enable(len(self.interpolation_masters) > 1)
@@ -860,9 +932,11 @@ class HTLSManager(GeneralPlugin):
 
 		# add a button to close the window
 		self.interpolation_sheet.closeButton = Button("auto", "Close", callback=self.close_interpolation_sheet)
-		self.interpolation_sheet.doneButton = Button("auto",
-		                                             "Interpolate parameters",
-		                                             callback=self.interpolate_parameters)
+		self.interpolation_sheet.doneButton = Button(
+			"auto",
+			"Interpolate parameters",
+			callback=self.interpolate_parameters
+		)
 
 		self.interpolation_sheet.setDefaultButton(self.interpolation_sheet.doneButton)
 
@@ -909,7 +983,7 @@ class HTLSManager(GeneralPlugin):
 			target_master_axis_value = self.font.selectedFontMaster.axes[axis_index]
 			# get the interpolation factor
 			factor = (target_master_axis_value - master_one_axis_value) / (
-					master_two_axis_value - master_one_axis_value)
+				master_two_axis_value - master_one_axis_value)
 
 			for parameter in ["paramArea", "paramDepth"]:
 				# get the master values of the axis
@@ -919,12 +993,16 @@ class HTLSManager(GeneralPlugin):
 				new_value = master_one_value + (factor * (master_two_value - master_one_value))
 				self.font.selectedFontMaster.customParameters[parameter] = int(new_value)
 
-			self.areaSettings.ui_update(self.font.selectedFontMaster.id,
-			                            int(self.font.selectedFontMaster.customParameters["paramArea"]),
-			                            int(self.font.selectedFontMaster.customParameters["paramArea"]) - 100,
-			                            int(self.font.selectedFontMaster.customParameters["paramArea"]) + 100)
-			self.depthSettings.ui_update(self.font.selectedFontMaster.id,
-			                             int(self.font.selectedFontMaster.customParameters["paramDepth"]))
+			self.areaSettings.ui_update(
+				self.font.selectedFontMaster.id,
+				int(self.font.selectedFontMaster.customParameters["paramArea"]),
+				int(self.font.selectedFontMaster.customParameters["paramArea"]) - 100,
+				int(self.font.selectedFontMaster.customParameters["paramArea"]) + 100
+			)
+			self.depthSettings.ui_update(
+				self.font.selectedFontMaster.id,
+				int(self.font.selectedFontMaster.customParameters["paramDepth"])
+			)
 
 		self.apply_parameters_to_selection()
 		self.close_interpolation_sheet()
@@ -1089,13 +1167,15 @@ class HTLSManager(GeneralPlugin):
 		factor = self.glyphInspectorTab.inspector.addRule.factor.select.get()
 		filter = self.glyphInspectorTab.inspector.addRule.filter.select.get()
 
-		self.add_font_rule(self.create_rule_id(),
-		                   category,
-		                   subcategory=subcategory,
-		                   case=case,
-		                   reference_glyph=reference_glyph,
-		                   filter=filter,
-		                   factor=factor)
+		self.add_font_rule(
+			self.create_rule_id(),
+			category,
+			subcategory=subcategory,
+			case=case,
+			reference_glyph=reference_glyph,
+			filter=filter,
+			factor=factor
+		)
 
 	@objc.python_method
 	def check_factor_is_float(self, sender):
@@ -1108,10 +1188,12 @@ class HTLSManager(GeneralPlugin):
 	@objc.python_method
 	def action_button_items(self):
 		action_items = [
-			dict(title="Copy parameters from...", items=[
-				dict(title=master.name, callback=self.link_master_callback)
-				for master in self.font.masters if master is not self.font.selectedFontMaster]
-			     ),
+			dict(
+				title="Copy parameters from...", items=[
+					dict(title=master.name, callback=self.link_master_callback)
+					for master in self.font.masters if master is not self.font.selectedFontMaster
+				]
+			),
 			dict(title="Interpolate parameters...", callback=self.interpolate_parameters_callback)
 		]
 
@@ -1121,8 +1203,9 @@ class HTLSManager(GeneralPlugin):
 	def toggle_reset_parameters_button(self):
 		# check whether the area and depth rules match the saved settings, only if not, enable the reset button
 		for parameter in ["paramArea", "paramDepth"]:
-			if int(self.font.selectedFontMaster.customParameters[parameter]) != \
-					self.parameters_dict[self.currentMasterID][parameter]:
+			masterValue = int(self.font.selectedFontMaster.customParameters[parameter])
+			currentValue = self.parameters_dict[self.currentMasterID][parameter]
+			if masterValue != currentValue:
 				self.parametersTab.resetParameters.enable(True)
 				break
 			else:
@@ -1139,8 +1222,10 @@ class HTLSManager(GeneralPlugin):
 	@objc.python_method
 	def apply_parameters_to_selection(self):
 		# if live preview is enabled, run the HTLS engine for all glyphs in the current tab
-		layers = [self.font.glyphs[self.leftGlyphView.glyph.name].layers[self.currentMasterID],
-		          self.font.glyphs[self.rightGlyphView.glyph.name].layers[self.currentMasterID]]
+		layers = [
+			self.font.glyphs[self.leftGlyphView.glyph.name].layers[self.currentMasterID],
+			self.font.glyphs[self.rightGlyphView.glyph.name].layers[self.currentMasterID]
+		]
 		if not self.font.currentTab:
 			self.font.newTab(layers)
 		if self.live_preview:
@@ -1189,8 +1274,10 @@ class HTLSManager(GeneralPlugin):
 
 		if profile_name and len(profile_name) > 0:
 			if profile_name in self.user_profiles:
-				if not dialogs.askYesNo(messageText="Overwrite profile?",
-				                        informativeText="Profile \"%s\" already exists." % profile_name):
+				if not dialogs.askYesNo(
+					messageText="Overwrite profile?",
+					informativeText="Profile \"%s\" already exists." % profile_name
+				):
 					return
 			self.user_profiles[profile_name] = self.font_rules
 			self.fontRulesTab.profiles.selector.setItems(["Choose..."] + list(self.user_profiles.keys()))
@@ -1231,10 +1318,12 @@ class HTLSManager(GeneralPlugin):
 
 			stack_views.append(profile_group)
 
-		self.manage_profiles_sheet.stackView = VerticalStackView("auto",
-		                                                         views=stack_views,
-		                                                         spacing=10,
-		                                                         edgeInsets=(10, 10, 10, 10))
+		self.manage_profiles_sheet.stackView = VerticalStackView(
+			"auto",
+			views=stack_views,
+			spacing=10,
+			edgeInsets=(10, 10, 10, 10)
+		)
 
 		self.manage_profiles_sheet.doneButton = Button("auto", "Done", callback=self.close_manage_profiles_sheet)
 
@@ -1271,8 +1360,10 @@ class HTLSManager(GeneralPlugin):
 		for i, button in enumerate(self.delete_profile_buttons):
 			if button == sender:
 				profile_name = self.profile_groups[i].title.get()
-				if not dialogs.askYesNo(messageText="Delete profile?",
-				                        informativeText="Are you sure you want to delete the profile %s?" % profile_name):
+				if not dialogs.askYesNo(
+					messageText="Delete profile?",
+					informativeText="Are you sure you want to delete the profile %s?" % profile_name
+				):
 					return
 				self.manage_profiles_sheet.stackView.removeView(self.profile_groups[i])
 				del self.user_profiles[self.profile_groups[i].title.get()]
@@ -1295,9 +1386,11 @@ class HTLSManager(GeneralPlugin):
 		if config_file_path is None:
 			return
 
-		new_rules = convert_config_to_dict(config_file_path,
-		                                   [glyph.name for glyph in self.font.glyphs],
-		                                   self.sub_categories)
+		new_rules = convert_config_to_dict(
+			config_file_path,
+			[glyph.name for glyph in self.font.glyphs],
+			self.sub_categories
+		)
 
 		self.rebuild_font_rules(new_rules)
 		self.font_rules = new_rules
@@ -1309,9 +1402,11 @@ class HTLSManager(GeneralPlugin):
 		# get the font file name without the extension
 		font_file_name = os.path.basename(self.font.filepath).split(".")[0]
 
-		config_file_path = GetSaveFile(message="Export autospace.py file",
-		                               ProposedFileName=font_file_name + "_autospace.py",
-		                               filetypes=["py"])
+		config_file_path = GetSaveFile(
+			message="Export autospace.py file",
+			ProposedFileName=font_file_name + "_autospace.py",
+			filetypes=["py"]
+		)
 		if config_file_path is None:
 			return
 

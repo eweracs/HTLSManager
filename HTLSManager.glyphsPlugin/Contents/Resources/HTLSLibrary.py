@@ -191,9 +191,10 @@ class HTLSEngine:
 			self.paramArea = int(self.master.customParameters["paramArea"] or 400)
 			self.paramDepth = int(self.master.customParameters["paramDepth"] or 12)
 		except:
-			Message(title="Error reading master parameters",
-			        message="Please only use integer values with no decimals for area and depth parameters. Using "
-			                "default values instead.")
+			Message(
+				title="Error reading master parameters",
+				message="Please only use integer values with no decimals for area and depth parameters. Using default values instead."
+			)
 			self.paramArea = 400
 			self.paramDepth = 12
 		self.paramOver = 0  # self.master.customParameters["paramOver"] or 0
@@ -202,8 +203,8 @@ class HTLSEngine:
 		self.l_polygon = None
 		self.r_polygon = None
 		if ".tosf" in self.glyph.name or ".tf" in self.glyph.name \
-				or self.glyph.widthMetricsKey or self.layer.widthMetricsKey \
-				or self.font.customParameters["isFixedPitch"]:
+			or self.glyph.widthMetricsKey or self.layer.widthMetricsKey \
+			or self.font.customParameters["isFixedPitch"]:
 			self.tabular_width = True
 			self.output += "Using fixed width: %s.\n" % int(self.layer.width)
 
@@ -434,12 +435,14 @@ class HTLSEngine:
 		# get the margins for the full outline
 		# will take measure from minY to maxY. minYref and maxYref are passed to check reference match
 		# totalMarginList(layer,minY,maxY,angle,minYref,maxYref)
-		l_total_margins, r_total_margins = total_margin_list(layer_decomposed,
-		                                                     self.minY,
-		                                                     self.maxY,
-		                                                     self.angle,
-		                                                     self.minYref,
-		                                                     self.maxYref)
+		l_total_margins, r_total_margins = total_margin_list(
+			layer_decomposed,
+			self.minY,
+			self.maxY,
+			self.angle,
+			self.minYref,
+			self.maxYref
+		)
 
 		# margins will be False, False if there is no measure in the reference zone, and then function stops
 		if not l_total_margins and not r_total_margins:
@@ -503,9 +506,11 @@ class HTLSScript:
 			return
 
 		if not self.font.selectedFontMaster.customParameters["paramArea"] \
-				or not self.font.selectedFontMaster.customParameters["paramDepth"]:
-			Message(title="Missing configuration",
-			        message="Please set up parameters in HTLS Manager. Using default values.")
+			or not self.font.selectedFontMaster.customParameters["paramDepth"]:
+			Message(
+				title="Missing configuration",
+				message="Please set up parameters in HTLS Manager. Using default values."
+			)
 
 		for glyph in self.font.selectedLayers:
 			parent = glyph.parent
