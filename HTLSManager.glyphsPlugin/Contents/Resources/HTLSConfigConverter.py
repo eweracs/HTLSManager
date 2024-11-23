@@ -2,12 +2,12 @@ from GlyphsApp import Glyphs, Message
 import uuid
 
 case_dict = {
-		"*": 0,
-		"upper": 1,
-		"lower": 2,
-		"smallCaps": 3,
-		"minor": 4,
-		"Other": 5
+	"*": 0,
+	"upper": 1,
+	"lower": 2,
+	"smallCaps": 3,
+	"minor": 4,
+	"Other": 5
 }
 
 categories = ["Letter", "Number", "Separator", "Punctuation", "Symbol", "Mark"]
