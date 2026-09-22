@@ -24,14 +24,14 @@ def get_margins(layer, y):
 	start_point = NSMakePoint(NSMinX(layer.bounds) - 1, y)
 	end_point = NSMakePoint(NSMaxX(layer.bounds) + 1, y)
 
-	result = layer.calculateIntersectionsStartPoint_endPoint_(start_point, end_point)
+	result = layer.intersectionsBetweenPoints(start_point, end_point)
 	count = len(result)
 	if count <= 2:
 		return None, None
 
 	left = 1
 	right = count - 2
-	return result[left].pointValue().x, result[right].pointValue().x
+	return result[left].x, result[right].x
 
 
 def triangle(angle, y):
